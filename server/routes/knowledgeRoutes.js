@@ -56,7 +56,7 @@ router.post("/search", async (req, res) => {
 
     // Gemini fallback
     const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash-latest"   // or "gemini-1.5-pro"
+        model: "gemini-2.5-flash"   // or "gemini-1.5-pro"
     });
 
     const aiResponse = await model.generateContent(question);

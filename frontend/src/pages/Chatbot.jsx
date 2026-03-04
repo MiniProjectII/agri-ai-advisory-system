@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "../styles/Chatbot.css";
 import axios from "axios";
 
 export default function Chatbot() {
