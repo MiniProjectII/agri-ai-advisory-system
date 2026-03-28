@@ -7,22 +7,28 @@ async function generalAgent(query, farmerMemory) {
     ? farmerMemory.previousCrops.join(", ")
     : "no previous crop history";
 
+  // ================= IMPROVED PROMPT =================
   const prompt = `
-You are a general agricultural assistant for farmers.
+${query}
 
-Farmer details:
+You are a helpful agricultural assistant for farmers.
+
+Farmer Details:
 - Location: ${location}
 - Soil Type: ${soilType}
 - Previous Crops: ${previousCrops}
 
-Question: ${query}
+Instructions:
+- Answer in English only
+- Give exactly 4-5 short steps
+- Each step should be 1 line only
+- Keep answer under 120 words
+- Do not give long paragraphs
+- Complete all sentences properly
 
-Answer in simple words.
-Give practical farmer-friendly advice.
-If the question is broad, give a helpful general agricultural answer.
-Keep it short and clear.
-Do not use tables.
+Answer:
 `;
+  // ===================================================
 
   const answer = await getHFAnswer(prompt);
 

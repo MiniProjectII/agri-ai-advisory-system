@@ -19,18 +19,27 @@ Current Weather:
     weatherInfo = "Weather data not available.";
   }
 
+  // ================= IMPROVED PROMPT =================
   const prompt = `
-You are a weather expert for farmers.
+${query}
+
+You are a weather expert helping farmers.
 
 Farmer Location: ${location}
 
 ${weatherInfo}
 
-Question: ${query}
+Instructions:
+- Answer in English only
+- Give exactly 4-5 short steps
+- Each step should be 1 line only
+- Keep answer under 120 words
+- Do not give long paragraphs
+- Complete all sentences properly
 
-Give practical farming advice based on current weather.
-Keep answer simple and clear.
+Answer:
 `;
+  // ===================================================
 
   const answer = await getHFAnswer(prompt);
 

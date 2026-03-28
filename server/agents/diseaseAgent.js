@@ -9,19 +9,27 @@ async function diseaseAgent(query, farmerMemory) {
     ? farmerMemory.previousCrops.join(", ")
     : "no previous crop history";
 
+  // ================= IMPROVED PROMPT =================
   const prompt = `
-You are a crop disease expert for farmers.
+${query}
 
-Previous crops: ${previousCrops}
-Past crop issues: ${pastIssues}
+You are a crop disease expert helping farmers.
 
-Question: ${query}
+Farmer Details:
+- Previous Crops: ${previousCrops}
+- Past Crop Issues: ${pastIssues}
 
-Answer in simple words.
-Explain possible disease or issue, basic treatment, and prevention.
-Keep the answer short and practical.
-Do not use tables.
+Instructions:
+- Answer in English only
+- Give exactly 4-5 short steps
+- Each step should be 1 line only
+- Keep answer under 120 words
+- Do not give long paragraphs
+- Complete all sentences properly
+
+Answer:
 `;
+  // ===================================================
 
   const answer = await getHFAnswer(prompt);
 

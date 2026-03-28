@@ -4,36 +4,66 @@ const client = new InferenceClient(process.env.HF_TOKEN);
 
 async function getHFAnswer(prompt) {
   try {
-    const response = await client.chatCompletion({
-      provider: "auto",
+    let finalAnswer = "";
+
+    // 🔥 First response
+    let response = await client.chatCompletion({
       model: "meta-llama/Llama-3.1-8B-Instruct",
       messages: [
         {
           role: "system",
           content:
-            "You are a helpful agricultural assistant. Reply in simple plain text for farmers. Keep answers short. Do not use tables."
+            "You are an agricultural expert. Always give full answers with steps. Do not stop in the middle."
         },
         {
           role: "user",
           content: prompt
         }
       ],
-      max_tokens: 180,
-      temperature: 0.3
+      max_tokens: 350,
+      temperature: 0.5
     });
 
-    console.log("HF RAW RESPONSE:", JSON.stringify(response, null, 2));
+    let text = response?.choices?.[0]?.message?.content?.trim() || "";
+    finalAnswer += text;
 
-    const text = response?.choices?.[0]?.message?.content?.trim();
+    // 🔥 LOOP to continue if answer is incomplete
+    let attempts = 0;
 
-    if (!text) {
-      return "Sorry, I could not generate a clear answer right now. Please try asking in a simpler way.";
+    while (
+      text &&
+      !text.endsWith(".") &&
+      !text.endsWith("।") &&
+      attempts < 2
+    ) {
+      const continueRes = await client.chatCompletion({
+        model: "meta-llama/Llama-3.1-8B-Instruct",
+        messages: [
+          {
+            role: "system",
+            content: "Continue the answer fully. Complete all steps."
+          },
+          {
+            role: "user",
+            content: finalAnswer
+          }
+        ],
+        max_tokens: 200
+      });
+
+      const moreText =
+        continueRes?.choices?.[0]?.message?.content?.trim() || "";
+
+      finalAnswer += " " + moreText;
+      text = moreText;
+      attempts++;
     }
 
-    return text;
+    return finalAnswer;
+
   } catch (error) {
-    console.error("Hugging Face Error:", error);
-    return "Sorry, I could not generate an AI response right now.";
+    console.error("HF ERROR:", error.response?.data || error.message);
+    return "Error generating response";
   }
 }
 

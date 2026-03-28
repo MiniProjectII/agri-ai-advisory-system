@@ -7,6 +7,7 @@ export default function Chatbot() {
   const [lastQuestion, setLastQuestion] = useState("");
 
   const [showForm, setShowForm] = useState(true);
+  const [language, setLanguage] = useState("English");
 
   const [farmerDetails, setFarmerDetails] = useState({
     name: "",
@@ -30,7 +31,8 @@ export default function Chatbot() {
     try {
       await axios.post("http://localhost:5000/memory/save", {
         farmerId: "farmer1",
-        ...farmerDetails
+        ...farmerDetails,
+        preferred_language: language   // ✅ added
       });
 
       setShowForm(false);
@@ -63,7 +65,8 @@ export default function Chatbot() {
     try {
       const response = await axios.post("http://localhost:5000/agent/query", {
         farmerId: "farmer1",
-        question: question
+        question: question,
+        language: language   // ✅ added
       });
 
       const botMessage = {
@@ -103,7 +106,8 @@ export default function Chatbot() {
         const response = await axios.post("http://localhost:5000/agent/query", {
           farmerId: "farmer1",
           question: lastQuestion,
-          forceAgent: true
+          forceAgent: true,
+          language: language   // ✅ added
         });
 
         const agentMap = {
@@ -156,6 +160,17 @@ export default function Chatbot() {
         <h2 className="chat-title">Enter Farmer Details</h2>
 
         <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+          
+          {/* ✅ Language Selector */}
+          <select 
+            value={language} 
+            onChange={(e) => setLanguage(e.target.value)}
+          >
+            <option value="English">English</option>
+            <option value="Telugu">Telugu</option>
+            <option value="Hindi">Hindi</option>
+          </select>
+
           <input
             type="text"
             name="name"
@@ -197,6 +212,17 @@ export default function Chatbot() {
   return (
     <div className="chat-container">
       <h2 className="chat-title">Farmer Multi-Agent Chatbot</h2>
+
+      {/* ✅ Language Selector */}
+      <select 
+        value={language} 
+        onChange={(e) => setLanguage(e.target.value)}
+        style={{ marginBottom: "10px", padding: "5px" }}
+      >
+        <option value="English">English</option>
+        <option value="Telugu">Telugu</option>
+        <option value="Hindi">Hindi</option>
+      </select>
 
       <div className="messages">
         {messages.map((msg, index) => (

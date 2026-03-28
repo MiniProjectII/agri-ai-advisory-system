@@ -6,7 +6,7 @@ async function fertilizerAgent(query, farmerMemory) {
 
   let recommendation = "";
 
-  // 🔥 RULE-BASED LOGIC (tool)
+  // 🔥 RULE-BASED LOGIC
   if (crop === "rice") {
     recommendation = "Use more nitrogen (urea) and moderate phosphorus.";
   } else if (crop === "cotton") {
@@ -17,20 +17,30 @@ async function fertilizerAgent(query, farmerMemory) {
     recommendation = "Use balanced NPK fertilizer based on soil test.";
   }
 
+  // ================= IMPROVED PROMPT =================
   const prompt = `
-You are a fertilizer expert.
+${query}
 
-Farmer crop: ${crop}
-Soil: ${soil}
+You are a fertilizer expert helping farmers.
 
-Base recommendation:
+Farmer Details:
+- Crop: ${crop}
+- Soil: ${soil}
+
+Base Recommendation:
 ${recommendation}
 
-Question: ${query}
+Instructions:
+- Answer in English only
+- Give exactly 4-5 short steps
+- Each step should be 1 line only
+- Keep answer under 120 words
+- Do not give long paragraphs
+- Complete all sentences properly
 
-Explain this in simple farmer-friendly way.
-Keep it short.
+Answer:
 `;
+  // ===================================================
 
   const answer = await getHFAnswer(prompt);
 

@@ -7,7 +7,7 @@ async function soilAgent(query, farmerMemory) {
     ? farmerMemory.previousCrops.join(", ")
     : "no previous crop history";
 
-  // 🔥 RULE-BASED LOGIC (tool-based intelligence)
+  // 🔥 RULE-BASED LOGIC
   let soilAdvice = "";
 
   if (soilType.toLowerCase().includes("black")) {
@@ -26,25 +26,31 @@ async function soilAgent(query, farmerMemory) {
     soilAdvice = "Maintain soil health using organic manure and proper nutrient management.";
   }
 
-  // 🔥 AI explanation (human-friendly output)
+  // ================= IMPROVED PROMPT =================
   const prompt = `
-You are a Soil Expert Agent for farmers.
+${query}
 
-Farmer details:
+You are a Soil Expert helping farmers.
+
+Farmer Details:
 - Location: ${location}
 - Soil Type: ${soilType}
 - Previous Crops: ${previousCrops}
 
-Base soil advice:
+Base Advice:
 ${soilAdvice}
 
-Farmer question:
-${query}
+Instructions:
+- Answer in English only
+- Give exactly 4-5 short steps
+- Each step should be 1 line only
+- Keep answer under 120 words
+- Do not give long paragraphs
+- Complete all sentences properly
 
-Explain this in simple farmer-friendly language.
-Give practical steps.
-Keep it short and clear.
+Answer:
 `;
+  // ===================================================
 
   const answer = await getHFAnswer(prompt);
 

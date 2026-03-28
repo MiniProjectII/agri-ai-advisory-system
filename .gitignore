@@ -5,4 +5,4 @@ __pycache__
 *.pyc
 frontend/node_modules
 server/node_modules
-ml-service/venv
+ml-service/venv 

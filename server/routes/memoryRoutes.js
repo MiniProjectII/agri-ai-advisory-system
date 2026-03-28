@@ -18,7 +18,7 @@ router.post("/save", async (req, res) => {
         pastIssues,
         fertilizerUsage
       },
-      { new: true, upsert: true }
+      { upsert: true, returnDocument: "after" } // ✅ fixed here
     );
 
     res.json({
