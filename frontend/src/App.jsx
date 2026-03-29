@@ -6,7 +6,7 @@ function App() {
   return (
     <div className="app-page">
       <header className="app-header">
-        <h1>Agri AI Advisory System</h1>
+        <h2 className="chat-title">🌱 AI Crop Advisory Assistant</h2>
         <p>Smart crop guidance and farmer support using multi-agent AI</p>
       </header>
 

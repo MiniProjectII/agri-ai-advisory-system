@@ -17,8 +17,71 @@ export default function Chatbot() {
   });
 
   const [messages, setMessages] = useState([]);
+  const [isMuted, setIsMuted] = useState(false);
 
-  // -------------------- HANDLE INPUT --------------------
+  // 🎤 VOICE RECOGNITION
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  let recognition;
+
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+  }
+
+  const startListening = () => {
+    if (!recognition) {
+      alert("Speech Recognition not supported");
+      return;
+    }
+
+    recognition.lang =
+      language === "Telugu"
+        ? "te-IN"
+        : language === "Hindi"
+        ? "hi-IN"
+        : "en-IN";
+
+    recognition.start();
+
+    recognition.onresult = (event) => {
+      const speechText = event.results[0][0].transcript;
+      setQuestion(speechText);
+    };
+  };
+
+  // 🔊 VOICE OUTPUT (manual only)
+  const speakText = (text) => {
+    if (isMuted) return;
+
+    window.speechSynthesis.cancel();
+
+    const speech = new SpeechSynthesisUtterance(text);
+
+    if (language === "Telugu") {
+      speech.lang = "te-IN";
+    } else if (language === "Hindi") {
+      speech.lang = "hi-IN";
+    } else {
+      speech.lang = "en-IN";
+    }
+
+    speech.rate = 0.9;
+    speech.pitch = 1;
+
+    window.speechSynthesis.speak(speech);
+  };
+
+  // 🔇 Controls
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+  };
+
+  // -------------------- INPUT --------------------
   const handleInputChange = (e) => {
     setFarmerDetails({
       ...farmerDetails,
@@ -26,13 +89,13 @@ export default function Chatbot() {
     });
   };
 
-  // -------------------- SAVE FARMER DETAILS --------------------
+  // -------------------- SAVE --------------------
   const saveFarmerDetails = async () => {
     try {
       await axios.post("http://localhost:5000/memory/save", {
         farmerId: "farmer1",
         ...farmerDetails,
-        preferred_language: language   // ✅ added
+        preferred_language: language
       });
 
       setShowForm(false);
@@ -44,35 +107,28 @@ export default function Chatbot() {
           text: `Hello ${farmerDetails.name || "farmer"}! Ask your farming questions.`
         }
       ]);
-
     } catch (error) {
-      console.error(error);
       alert("Error saving farmer details");
     }
   };
 
-  // -------------------- SEND QUESTION --------------------
+  // -------------------- SEND --------------------
   const sendQuestion = async () => {
     if (!question.trim()) return;
 
-    const userMessage = {
-      sender: "user",
-      text: question
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [...prev, { sender: "user", text: question }]);
 
     try {
-      const response = await axios.post("http://localhost:5000/agent/query", {
+      const res = await axios.post("http://localhost:5000/agent/query", {
         farmerId: "farmer1",
-        question: question,
-        language: language   // ✅ added
+        question,
+        language
       });
 
       const botMessage = {
         sender: "bot",
-        agent: response.data.response.agent,
-        text: response.data.response.answer
+        agent: res.data.response.agent,
+        text: res.data.response.answer
       };
 
       setMessages((prev) => [
@@ -88,8 +144,7 @@ export default function Chatbot() {
       setLastQuestion(question);
       setQuestion("");
 
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
       alert("Server error");
     }
   };
@@ -102,153 +157,96 @@ export default function Chatbot() {
         { sender: "bot", text: "Glad I could help! 😊" }
       ]);
     } else {
-      try {
-        const response = await axios.post("http://localhost:5000/agent/query", {
-          farmerId: "farmer1",
-          question: lastQuestion,
-          forceAgent: true,
-          language: language   // ✅ added
-        });
+      const res = await axios.post("http://localhost:5000/agent/query", {
+        farmerId: "farmer1",
+        question: lastQuestion,
+        forceAgent: true,
+        language
+      });
 
-        const agentMap = {
-          soil: "Soil Agent",
-          fertilizer: "Fertilizer Agent",
-          disease: "Crop Disease Agent",
-          weather: "Weather Agent"
-        };
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "🔄 Redirecting to specialist..."
+        }
+      ]);
 
-        const selected = response.data.selectedAgent;
-
+      setTimeout(() => {
         setMessages((prev) => [
           ...prev,
           {
             sender: "bot",
-            text: `🔄 Redirecting to ${agentMap[selected] || "Specialist Agent"}...`
+            agent: res.data.response.agent,
+            text: res.data.response.answer
           }
         ]);
-
-        setTimeout(() => {
-          const botMessage = {
-            sender: "bot",
-            agent: response.data.response.agent,
-            text: response.data.response.answer
-          };
-
-          setMessages((prev) => [...prev, botMessage]);
-        }, 800);
-
-      } catch (error) {
-        console.error(error);
-        alert("Error redirecting to agent");
-      }
+      }, 800);
     }
   };
 
-  // -------------------- ENTER KEY --------------------
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      sendQuestion();
-    }
+    if (e.key === "Enter") sendQuestion();
   };
 
-  // ==================== UI ====================
-
-  // ----------- FORM UI -----------
+  // -------------------- FORM --------------------
   if (showForm) {
     return (
       <div className="chat-container">
-        <h2 className="chat-title">Enter Farmer Details</h2>
+        <h2>🌱 Farmer Registration</h2>
 
-        <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-          
-          {/* ✅ Language Selector */}
-          <select 
-            value={language} 
-            onChange={(e) => setLanguage(e.target.value)}
-          >
-            <option value="English">English</option>
-            <option value="Telugu">Telugu</option>
-            <option value="Hindi">Hindi</option>
-          </select>
+        <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+          <option>English</option>
+          <option>Telugu</option>
+          <option>Hindi</option>
+        </select>
 
-          <input
-            type="text"
-            name="name"
-            placeholder="Enter your name"
-            onChange={handleInputChange}
-          />
+        <input name="name" placeholder="Name" onChange={handleInputChange} />
+        <input name="location" placeholder="Location" onChange={handleInputChange} />
+        <input name="soilType" placeholder="Soil" onChange={handleInputChange} />
+        <input name="ph" placeholder="pH" onChange={handleInputChange} />
 
-          <input
-            type="text"
-            name="location"
-            placeholder="Enter your location (e.g., Warangal)"
-            onChange={handleInputChange}
-          />
-
-          <input
-            type="text"
-            name="soilType"
-            placeholder="Enter soil type (e.g., black soil)"
-            onChange={handleInputChange}
-          />
-
-          <input
-            type="number"
-            step="0.1"
-            name="ph"
-            placeholder="Enter soil pH (optional)"
-            onChange={handleInputChange}
-          />
-
-          <button onClick={saveFarmerDetails}>
-            Save & Start Chat
-          </button>
-        </div>
+        <button onClick={saveFarmerDetails}>Start</button>
       </div>
     );
   }
 
-  // ----------- CHAT UI -----------
+  // -------------------- CHAT --------------------
   return (
     <div className="chat-container">
-      <h2 className="chat-title">Farmer Multi-Agent Chatbot</h2>
+      <h2>🌾 AI Crop Assistant</h2>
 
-      {/* ✅ Language Selector */}
-      <select 
-        value={language} 
-        onChange={(e) => setLanguage(e.target.value)}
-        style={{ marginBottom: "10px", padding: "5px" }}
-      >
-        <option value="English">English</option>
-        <option value="Telugu">Telugu</option>
-        <option value="Hindi">Hindi</option>
+      <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+        <option>English</option>
+        <option>Telugu</option>
+        <option>Hindi</option>
       </select>
 
-      <div className="messages">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`message ${msg.sender === "user" ? "user" : "bot"}`}
-          >
-            {msg.sender === "bot" && msg.agent && (
-              <p><strong>{msg.agent}</strong></p>
-            )}
+      {/* 🔇 Controls */}
+      <div>
+        <button onClick={toggleMute}>
+          {isMuted ? "🔈 Unmute" : "🔇 Mute"}
+        </button>
 
+        <button onClick={stopSpeaking}>⏹ Stop</button>
+      </div>
+
+      <div className="messages">
+        {messages.map((msg, i) => (
+          <div key={i} className={msg.sender}>
+            {msg.agent && <b>{msg.agent}</b>}
             <p>{msg.text}</p>
 
-            {msg.type === "feedback" && (
-              <div style={{ marginTop: "8px" }}>
-                <button onClick={() => handleFeedback("yes")}>
-                  Yes
-                </button>
+            {/* 🔊 Speak button */}
+            {msg.sender === "bot" && (
+              <button onClick={() => speakText(msg.text)}>🔊</button>
+            )}
 
-                <button
-                  onClick={() => handleFeedback("no")}
-                  style={{ marginLeft: "10px" }}
-                >
-                  No
-                </button>
-              </div>
+            {msg.type === "feedback" && (
+              <>
+                <button onClick={() => handleFeedback("yes")}>Yes</button>
+                <button onClick={() => handleFeedback("no")}>No</button>
+              </>
             )}
           </div>
         ))}
@@ -256,13 +254,15 @@ export default function Chatbot() {
 
       <div className="input-area">
         <input
-          type="text"
-          placeholder="Ask your farming question..."
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={handleKeyDown}
         />
+
         <button onClick={sendQuestion}>Send</button>
+
+        {/* 🎤 */}
+        <button onClick={startListening}>🎤</button>
       </div>
     </div>
   );
