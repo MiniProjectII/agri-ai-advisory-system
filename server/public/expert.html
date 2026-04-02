@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Expert Dashboard</title>
+</head>
+<body>
+
+<h2>👨‍🔬 Expert Dashboard</h2>
+
+<hr>
+
+<!-- ⭐ PROFILE -->
+<div id="profile"></div>
+
+<hr>
+
+<!-- 📩 CHAT REQUESTS -->
+<h3>📩 Chat Requests</h3>
+<div id="requests"></div>
+
+<hr>
+
+<h3>Farmer Questions</h3>
+<div id="posts"></div>
+
+<script>
+
+// ================= USER =================
+const user = JSON.parse(localStorage.getItem("user"));
+
+if (!user) {
+  alert("Please login first");
+  window.location.href = "login.html";
+}
+
+// 🔥 BLOCK FARMER
+if (user.role !== "expert") {
+  alert("Access denied! Experts only");
+  window.location.href = "posts.html";
+}
+
+// 🔥 GLOBAL EXPERT OBJECT
+let currentExpert = null;
+
+// ================= LOAD PROFILE =================
+async function loadProfile() {
+  try {
+    const res = await fetch("http://localhost:5000/experts");
+    const experts = await res.json();
+
+    currentExpert = experts.find(e => e.expert_id === user._id);
+
+    const container = document.getElementById("profile");
+
+    if (currentExpert) {
+      container.innerHTML = `
+        <p>⭐ Your Rating: ${(currentExpert.rating || 0).toFixed(1)}</p>
+      `;
+    } else {
+      container.innerHTML = `<p>No profile found</p>`;
+    }
+
+  } catch (err) {
+    console.log("Profile error:", err);
+  }
+}
+
+// ================= LOAD CHAT REQUESTS =================
+async function loadRequests() {
+
+  if (!currentExpert) {
+    console.log("⏳ Waiting for profile...");
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `http://localhost:5000/expert-requests/${currentExpert._id}`
+    );
+
+    const requests = await res.json();
+
+    const container = document.getElementById("requests");
+    container.innerHTML = "";
+
+    if (requests.length === 0) {
+      container.innerHTML = "<p>No chat requests</p>";
+      return;
+    }
+
+    requests.forEach(r => {
+      console.log("Expert ID:", currentExpert._id);
+      console.log("Request expert_id:", r.expert_id);
+
+      const div = document.createElement("div");
+
+      div.innerHTML = `
+        <p>Farmer wants to chat</p>
+        <button onclick="openChat('${r.farmer_id}')">Open Chat</button>
+        <hr>
+      `;
+
+      container.appendChild(div);
+    });
+
+  } catch (err) {
+    console.log("Request error:", err);
+  }
+}
+
+// ================= OPEN CHAT =================
+function openChat(farmerId) {
+  window.location.href = `chat.html?farmer=${farmerId}&expert=${currentExpert._id}`;
+}
+
+// ================= POSTS =================
+async function loadPosts() {
+  try {
+    const res = await fetch("http://localhost:5000/posts");
+    const posts = await res.json();
+
+    const container = document.getElementById("posts");
+    container.innerHTML = "";
+
+    posts.forEach(post => {
+      const div = document.createElement("div");
+
+      div.innerHTML = `
+        <h4>${post.title}</h4>
+        <p>${post.description}</p>
+
+        <button onclick="answerPost('${post._id}')">Answer</button>
+        <button onclick="viewAnswers('${post._id}')">View Answers</button>
+
+        <hr>
+      `;
+
+      container.appendChild(div);
+    });
+
+  } catch (err) {
+    console.log("Posts error:", err);
+  }
+}
+
+// ================= ANSWER =================
+async function answerPost(postId) {
+  const text = prompt("Enter your answer:");
+  if (!text) return;
+
+  await fetch("http://localhost:5000/add-answer", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      post_id: postId,
+      expert_id: user._id,
+      answer_text: text
+    })
+  });
+
+  alert("Answer added!");
+}
+
+// ================= VIEW ANSWERS =================
+async function viewAnswers(postId) {
+  const res = await fetch(`http://localhost:5000/answers/${postId}`);
+  const answers = await res.json();
+
+  let text = "Answers:\n\n";
+
+  if (answers.length === 0) {
+    text += "No answers yet";
+  } else {
+    answers.forEach(a => {
+      text += "- " + a.answer_text + "\n";
+    });
+  }
+
+  alert(text);
+}
+
+// ================= INIT =================
+async function init() {
+  await loadProfile();   // 🔥 wait for expert first
+  loadPosts();
+  loadRequests();
+}
+
+init();
+
+// 🔁 refresh requests
+setInterval(loadRequests, 3000);
+
+</script>
+
+</body>
+</html>
