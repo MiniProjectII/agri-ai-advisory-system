@@ -8,6 +8,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState("farmer");
+  const [loginRole, setLoginRole] = useState("farmer");
+  const [proofOfExpertise, setProofOfExpertise] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -15,16 +17,26 @@ export default function Login() {
     try {
       if (isLogin) {
         const res = await axios.post("http://localhost:5000/auth/login", { email, password });
-        localStorage.setItem("user", JSON.stringify(res.data.user));
+        const loggedUser = { ...res.data.user };
+        const effectiveRole = loggedUser.role === "farmer_expert" ? loginRole : loggedUser.role;
+        loggedUser.originalRole = res.data.user.role; // keep track of true db role just in case
+        loggedUser.role = effectiveRole;
+
+        localStorage.setItem("user", JSON.stringify(loggedUser));
         localStorage.setItem("token", res.data.token);
-        
-        if (res.data.user.role === "expert") {
+
+        if (effectiveRole === "admin") {
+          navigate("/admin");
+        } else if (effectiveRole === "expert" && res.data.expertData && !res.data.expertData.is_approved) {
+          alert("Your expert account is pending admin approval.");
+          navigate("/");
+        } else if (effectiveRole === "expert" || effectiveRole === "farmer_expert") {
           navigate("/expert-dashboard");
         } else {
           navigate("/ai-assistant");
         }
       } else {
-        await axios.post("http://localhost:5000/auth/register", { name, email, password, role });
+        await axios.post("http://localhost:5000/auth/register", { name, email, password, role, proofOfExpertise });
         alert("Registered successfully! Please login.");
         setIsLogin(true);
       }
@@ -39,7 +51,7 @@ export default function Login() {
         {/* Left side */}
         <div style={{ 
           flex: 1, 
-          backgroundImage: "url('https://images.unsplash.com/photo-1628183204780-4963e6ef6107?q=80&w=1000&auto=format&fit=crop')", 
+          backgroundImage: "url('https://images.unsplash.com/photo-1592982537447-6f2a6a0c6c23?q=80&w=1000&auto=format&fit=crop')", 
           backgroundSize: "cover", 
           backgroundPosition: "center", 
           padding: "40px", 
@@ -49,9 +61,9 @@ export default function Login() {
           color: "white" 
         }}>
           <div style={{ background: "rgba(0,0,0,0.6)", padding: "25px", borderRadius: "16px", backdropFilter: "blur(10px)" }}>
-            <h2 style={{ color: "#10b981", margin: "0 0 10px 0", fontSize: "2rem" }}>🌱 AgriAI 2.0</h2>
+            <h2 style={{ color: "#10b981", margin: "0 0 10px 0", fontSize: "2rem" }}>🌱 HarvestMate</h2>
             <p style={{ fontSize: "1.1rem", lineHeight: "1.5", margin: 0 }}>
-              Predict crops, detect diseases using AI, and talk to specialized experts. Empowering modern farming.
+              Access smart crop advising, live market data, and top-tier expert consultation.
             </p>
           </div>
         </div>
@@ -64,11 +76,31 @@ export default function Login() {
             {!isLogin && (
               <>
                 <input required type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} />
-                <select value={role} onChange={e => setRole(e.target.value)} style={{ appearance: "none" }}>
-                  <option value="farmer" style={{ background: "var(--bg-secondary)" }}>Farmer</option>
-                  <option value="expert" style={{ background: "var(--bg-secondary)" }}>Expert</option>
+                <select value={role} onChange={e => setRole(e.target.value)} style={{ appearance: "none", padding: "12px", borderRadius: "6px" }}>
+                  <option value="farmer">Farmer</option>
+                  <option value="expert">Expert</option>
                 </select>
+                {role === "expert" && (
+                  <textarea 
+                    required 
+                    placeholder="Provide proof of expertise or past success..." 
+                    value={proofOfExpertise} 
+                    onChange={e => setProofOfExpertise(e.target.value)} 
+                    style={{ minHeight: "80px", resize: "none" }}
+                  />
+                )}
               </>
+            )}
+            {isLogin && (
+              <div style={{ display: "flex", gap: "20px", alignItems: "center", marginBottom: "10px" }}>
+                <span style={{ color: "var(--text-secondary)", fontSize: "0.9em" }}>Login as:</span>
+                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                  <input type="radio" name="loginRole" value="farmer" checked={loginRole === "farmer"} onChange={() => setLoginRole("farmer")} /> Farmer
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                  <input type="radio" name="loginRole" value="expert" checked={loginRole === "expert"} onChange={() => setLoginRole("expert")} /> Expert
+                </label>
+              </div>
             )}
             <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
             <input required type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const FarmerMemory = require("../models/FarmerMemory");
+const ChatbotHistory = require("../models/ChatbotHistory");
 const routerAgent = require("../agents/routerAgent");
 const soilAgent = require("../agents/soilAgent");
 const fertilizerAgent = require("../agents/fertilizerAgent");
@@ -57,11 +58,19 @@ router.post("/query", async (req, res) => {
     // 🔥 STEP 1: auto-learn
     await updateMemoryFromQuery(farmerId, question);
 
-    // 🔥 STEP 2: memory
+    // 🔥 STEP 2: memory and history
     const farmerMemory = await FarmerMemory.findOne({ farmerId });
+    
+    // Load and format history
+    let historyDoc = await ChatbotHistory.findOne({ farmerId });
+    let historyContext = "";
+    if (historyDoc && historyDoc.messages && historyDoc.messages.length > 0) {
+      const recentHistory = historyDoc.messages.slice(-6); // Keep last 6 messages
+      historyContext = "\n\nPast Conversation History:\n" + recentHistory.map(m => `${m.role === 'user' ? 'Farmer' : 'AI'}: ${m.content}`).join("\n");
+    }
 
     // ✅ ALWAYS use English internally
-    const finalQuestion = `Farmer Question: ${question}`;
+    const finalQuestion = `Farmer Question: ${question}${historyContext}`;
 
     let selectedAgent;
     let augmentedQuestion = finalQuestion;
@@ -163,6 +172,14 @@ finalAnswer = finalAnswer.replace(/\n?\d+\.$/, "").trim();
       finalAnswer = await translateText(finalAnswer, language);
     }
     // =====================================================
+
+    // Save to History
+    if (!historyDoc) {
+      historyDoc = new ChatbotHistory({ farmerId, messages: [] });
+    }
+    historyDoc.messages.push({ role: "user", content: question });
+    historyDoc.messages.push({ role: "model", content: finalAnswer });
+    await historyDoc.save();
 
     res.json({
       selectedAgent,

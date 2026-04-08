@@ -5,9 +5,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const Expert = require("../models/Expert");
+const Admin = require("../models/Admin");
 
 router.post("/register", async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, proofOfExpertise } = req.body;
 
   const hashed = await bcrypt.hash(password, 10);
 
@@ -31,7 +32,8 @@ router.post("/register", async (req, res) => {
       location: "India",
       rating: 0,
       total_ratings: 0,
-      is_approved: true
+      is_approved: false,
+      proof_of_expertise: proofOfExpertise || ""
     });
 
     await expert.save();
@@ -41,12 +43,55 @@ router.post("/register", async (req, res) => {
 
   res.send("User registered");
 });
+// FARMER -> EXPERT APPLICATION
+router.post("/apply-expert", async (req, res) => {
+  try {
+    const { user_id, name, specialization, proofOfExpertise } = req.body;
+    
+    // Check if already applied
+    const existing = await Expert.findOne({ user_id });
+    if (existing) {
+      return res.status(400).json({ message: "You already have an expert profile or pending application." });
+    }
+
+    const expert = new Expert({
+      user_id,
+      name,
+      specialization: specialization || "General",
+      experience_years: 1,
+      languages: ["English"],
+      location: "India",
+      rating: 0,
+      total_ratings: 0,
+      is_approved: false,
+      proof_of_expertise: proofOfExpertise || ""
+    });
+
+    await expert.save();
+    res.json({ message: "Application submitted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // LOGIN
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
     console.log("Login request:", email, password); // debug
+
+    // 👉 DATABASE ADMIN LOGIC
+    const adminUser = await Admin.findOne({ email });
+    if (adminUser) {
+      if (adminUser.password === password) {
+        const token = jwt.sign({ id: adminUser._id, role: "admin" }, "secretkey");
+        return res.json({ token, user: { name: adminUser.name, email: adminUser.email, role: "admin" } });
+      } else {
+        return res.status(400).json({ message: "Wrong admin password" });
+      }
+    }
 
     const user = await User.findOne({ email });
 
@@ -71,7 +116,12 @@ router.post("/login", async (req, res) => {
 
     console.log("Login success");
 
-    res.json({ token, user });
+    let expertData = null;
+    if (user.role === "expert" || user.role === "farmer_expert") {
+      expertData = await Expert.findOne({ user_id: user._id });
+    }
+
+    res.json({ token, user, expertData });
 
   } catch (err) {
     console.log("Login error:", err);

@@ -41,7 +41,7 @@ export default function Profile() {
   };
 
   useEffect(() => {
-    if (user && user.role === "farmer") {
+    if (user && (user.role === "farmer" || user.role === "farmer_expert")) {
       axios.get(`http://localhost:5000/memory/${user._id}`)
         .then(res => {
           if (res.data) {
@@ -86,8 +86,8 @@ export default function Profile() {
     }
   };
 
-  if (!user || user.role !== "farmer") {
-    return <div style={{textAlign: "center", padding: "50px", color: "var(--text-secondary)"}}>Access restricted to Farmers.</div>;
+  if (!user) {
+    return <div style={{textAlign: "center", padding: "50px", color: "var(--text-secondary)"}}>Please login to view profile.</div>;
   }
 
   return (

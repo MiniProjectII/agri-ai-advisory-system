@@ -8,7 +8,7 @@ export default function ExpertDashboard() {
   const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
-    if (!user || user.role !== "expert") {
+    if (!user || (user.role !== "expert" && user.role !== "farmer_expert")) {
       navigate("/");
       return;
     }

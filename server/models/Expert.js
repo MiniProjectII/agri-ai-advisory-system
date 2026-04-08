@@ -28,7 +28,8 @@ total_ratings: {
   is_approved: {
     type: Boolean,
     default: false
-  }
+  },
+  proof_of_expertise: String
 });
 
 module.exports = mongoose.model("Expert", ExpertSchema);

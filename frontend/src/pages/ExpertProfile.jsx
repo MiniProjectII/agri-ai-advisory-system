@@ -18,7 +18,7 @@ export default function ExpertProfile() {
   const [stats, setStats] = useState({ resolved_cases: 0, rating: 0, total_ratings: 0 });
 
   useEffect(() => {
-    if (user && user.role === "expert") {
+    if (user && (user.role === "expert" || user.role === "farmer_expert")) {
       axios.get(`http://localhost:5000/expert-profile/${user._id}`)
         .then(res => {
           if (res.data) {
@@ -67,7 +67,7 @@ export default function ExpertProfile() {
     }
   };
 
-  if (!user || user.role !== "expert") {
+  if (!user || (user.role !== "expert" && user.role !== "farmer_expert")) {
     return <div style={{textAlign: "center", padding: "50px", color: "var(--text-secondary)"}}>Access restricted to Experts.</div>;
   }
 
