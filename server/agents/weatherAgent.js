@@ -1,4 +1,4 @@
-const getHFAnswer = require("../services/huggingfaceService");
+const getHFAnswer = require("../services/geminiService");
 const getWeather = require("../services/weatherService");
 
 async function weatherAgent(query, farmerMemory) {

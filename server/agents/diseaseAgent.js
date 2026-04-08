@@ -1,4 +1,4 @@
-const getHFAnswer = require("../services/huggingfaceService");
+const getHFAnswer = require("../services/geminiService");
 
 async function diseaseAgent(query, farmerMemory) {
   const pastIssues = farmerMemory?.pastIssues?.length

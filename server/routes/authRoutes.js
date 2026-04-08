@@ -23,7 +23,7 @@ router.post("/register", async (req, res) => {
   // 🔥 LINK USER → EXPERT
   if (role === "expert") {
     const expert = new Expert({
-      expert_id: user._id,   // 🔥 MUST MATCH
+      user_id: user._id,   // 🔥 MUST MATCH
       name: name,
       specialization: "General",
       experience_years: 1,

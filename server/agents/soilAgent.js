@@ -1,4 +1,4 @@
-const getHFAnswer = require("../services/huggingfaceService");
+const getHFAnswer = require("../services/geminiService");
 
 async function soilAgent(query, farmerMemory) {
   const location = farmerMemory?.location || "unknown location";

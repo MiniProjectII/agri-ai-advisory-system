@@ -1,29 +1,54 @@
+/* App.css (Global overrides) */
+:root {
+  --emerald-primary: #10b981;
+  --emerald-hover: #059669;
+  --forest-green: #064e3b;
+  --bg-primary: #0f172a;
+}
+
 body {
   margin: 0;
-  background: #f5f7fb;
-  font-family: "Segoe UI", Arial, sans-serif;
+  background: radial-gradient(circle at top right, var(--forest-green) 0%, var(--bg-primary) 100%);
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  color: #f8fafc;
+  transition: background 0.3s ease, font-size 0.3s ease;
+  min-height: 100vh;
+}
+
+body.dark-mode {
+  --bg-primary: #020617;
+  --forest-green: #022c22;
+  background: radial-gradient(circle at top right, var(--forest-green) 0%, var(--bg-primary) 100%);
+}
+
+body.lg-font {
+  font-size: 1.25rem;
 }
 
 .app-page {
-  padding: 24px 0 40px;
+  padding: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.app-header {
-  width: 700px;
-  max-width: 90%;
-  margin: 0 auto 20px;
-  text-align: center;
+.glass-panel {
+  background: rgba(30, 41, 59, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
 }
 
 .app-header h1 {
   margin: 0;
-  font-size: 32px;
-  color: #1f2937;
+  font-size: 2.5rem;
+  color: var(--emerald-primary);
+  text-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
 }
 
 .app-header p {
-  margin-top: 8px;
-  color: #6b7280;
-  font-size: 15px;
+  color: #94a3b8;
+  font-size: 1.1rem;
 }
 

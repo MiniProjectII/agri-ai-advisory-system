@@ -11,6 +11,8 @@ const generalAgent = require("../agents/generalAgent");
 
 // ✅ translation service
 const translateText = require("../services/translateService");
+const searchReddit = require("../services/redditService");
+const getWeather = require("../services/weatherService");
 
 
 // ---------------- AUTO MEMORY LEARNING ----------------
@@ -62,32 +64,70 @@ router.post("/query", async (req, res) => {
     const finalQuestion = `Farmer Question: ${question}`;
 
     let selectedAgent;
+    let augmentedQuestion = finalQuestion;
+    
+    // 🔥 STEP 3: Get weather for all queries
+    let weatherInfo = "Weather unknown.";
+    if (farmerMemory?.location) {
+      const wData = await getWeather(farmerMemory.location);
+      if (wData) {
+        weatherInfo = `Temperature: ${wData.temperature}°C, ${wData.weather}`;
+      }
+    }
 
     if (forceAgent) {
       const routed = routerAgent(question);
       selectedAgent = routed === "general" ? "soil" : routed;
+      
+      // Aggregating Expert Context
+      console.log(`Virtual Expert Engaged: Fetching Reddit & Weather for ${selectedAgent}...`);
+      const redditData = await searchReddit(question);
+
+      augmentedQuestion = `
+      ${finalQuestion}
+      
+      INSTRUCTIONS FOR YOU:
+      You are now acting as a specialized ${selectedAgent} Expert answering a dissatisfied farmer. 
+      Use the following real-world data derived from Reddit and Weather APIs to give a human-like, highly personalized suggestion. YOU MUST explicitly mention the current weather conditions (${weatherInfo}) in your reasoning so the farmer knows you are considering their local climate! Do not hallucinate data.
+
+      Current Weather at Location: ${weatherInfo}
+      
+      ${redditData}
+      `;
     } else {
-      selectedAgent = "general";
+      // Determine which expert this query maps to (for frontend display), but respond generally
+      selectedAgent = routerAgent(question);
+      if (selectedAgent === "general") selectedAgent = "soil";
+
+      augmentedQuestion = `
+      ${finalQuestion}
+      
+      Provide a general, helpful response as an AI advisor. Consider the current weather in your advice if relevant: ${weatherInfo}. Keep it brief.
+      `;
     }
 
     let response;
-
-    if (selectedAgent === "soil") {
-      response = await soilAgent(finalQuestion, farmerMemory);
-    } 
-    else if (selectedAgent === "fertilizer") {
-      response = await fertilizerAgent(finalQuestion, farmerMemory);
-    } 
-    else if (selectedAgent === "disease") {
-      response = await diseaseAgent(finalQuestion, farmerMemory);
-    } 
-    else if (selectedAgent === "weather") {
-      response = await weatherAgent(finalQuestion, farmerMemory);
-    } 
-    else {
-      response = await generalAgent(finalQuestion, farmerMemory);
+    if (!forceAgent) {
+      response = await generalAgent(augmentedQuestion, farmerMemory);
+    } else {
+      if (selectedAgent === "soil") {
+        response = await soilAgent(augmentedQuestion, farmerMemory);
+      } 
+      else if (selectedAgent === "fertilizer") {
+        response = await fertilizerAgent(augmentedQuestion, farmerMemory);
+      } 
+      else if (selectedAgent === "disease") {
+        response = await diseaseAgent(augmentedQuestion, farmerMemory);
+      } 
+      else if (selectedAgent === "weather") {
+        response = await weatherAgent(augmentedQuestion, farmerMemory);
+      } 
+      else {
+        response = await generalAgent(augmentedQuestion, farmerMemory);
+      }
     }
 
+    // Routing logic is complete
     // ================= CLEAN + TRANSLATE =================
     let finalAnswer = response.answer || "";
 

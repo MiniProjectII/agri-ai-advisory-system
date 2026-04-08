@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const ExpertSchema = new mongoose.Schema({
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   name: String,
   specialization: String,
   experience_years: Number,
@@ -20,6 +21,10 @@ total_ratings: {
   },
   profile_photo: String,
   about: String,
+  resolved_cases: {
+    type: Number,
+    default: 0
+  },
   is_approved: {
     type: Boolean,
     default: false

@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const PostSchema = new mongoose.Schema({
-  farmer_id: String,
+  farmer_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   title: String,
   description: String,
   crop_type: String,

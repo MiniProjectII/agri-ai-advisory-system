@@ -1,42 +1,23 @@
-const { InferenceClient } = require("@huggingface/inference");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const client = new InferenceClient(process.env.HF_TOKEN);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function translateText(text, targetLang) {
   try {
-    // 🔥 Split into lines/steps
-    const lines = text.split("\n").filter(line => line.trim() !== "");
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    
+    const prompt = `Translate the following text into ${targetLang}. Preserve the original meaning exactly. Do not include any extra conversational text or markdown formatting. 
+    
+Text to translate:
+${text}`;
 
-    let translatedLines = [];
-
-    for (let line of lines) {
-      const response = await client.chatCompletion({
-        model: "meta-llama/Llama-3.1-8B-Instruct",
-        messages: [
-          {
-            role: "system",
-            content: `Translate this sentence into ${targetLang}. Keep meaning same.`
-          },
-          {
-            role: "user",
-            content: line
-          }
-        ],
-        max_tokens: 150
-      });
-
-      let translated =
-        response?.choices?.[0]?.message?.content || line;
-
-      translatedLines.push(translated.trim());
-    }
-
-    // 🔥 Join back
-    return translatedLines.join("\n");
+    const result = await model.generateContent(prompt);
+    let translated = result.response.text();
+    return translated.trim();
 
   } catch (error) {
-    console.error("Translation error:", error.message);
-    return text;
+    console.error("Translation error:", error);
+    return text + " [Translation Error: " + error.message + "]";
   }
 }
 

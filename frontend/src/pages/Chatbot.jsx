@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 import axios from "axios";
 import "../styles/Chatbot.css";
 
@@ -21,7 +22,15 @@ export default function Chatbot() {
   });
 
   const [messages, setMessages] = useState([]);
-  const [isMuted, setIsMuted] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -30,6 +39,30 @@ export default function Chatbot() {
     document.addEventListener("click", () => {
       window.speechSynthesis.resume();
     });
+
+    // Check memory on load
+    if (user?._id) {
+      axios.get(`http://localhost:5000/memory/${user._id}`)
+        .then(res => {
+          if (res.data && res.data.location) {
+            setFarmerDetails({
+              ...farmerDetails,
+              name: res.data.name || user.name,
+              location: res.data.location,
+              soilType: res.data.soilType || "",
+              ph: res.data.ph || ""
+            });
+            setShowForm(false);
+            setMessages([
+              {
+                sender: "bot",
+                text: `Welcome back ${res.data.name || user.name}! How can I help with your farm today?`
+              }
+            ]);
+          }
+        })
+        .catch(err => console.log("No existing memory found."));
+    }
   }, []);
 
   // 🎤 Voice Input
@@ -63,13 +96,26 @@ export default function Chatbot() {
 
   // 🔊 Speak
   const speakText = (text) => {
-    if (isMuted) return;
 
     window.speechSynthesis.cancel();
+    
+    let voices = window.speechSynthesis.getVoices();
+    
+    // Check if we intrinsically lack the required voice
+    if (language !== "English") {
+      const code = language === "Telugu" ? "te" : "hi";
+      const hasNativeVoice = voices.some(v => v.lang.includes(code) || v.name.toLowerCase().includes(language.toLowerCase()));
+      
+      if (!hasNativeVoice && voices.length > 0) {
+        console.warn(`Native ${language} voice missing. Using HTTP Audio fallback.`);
+        const url = `http://localhost:5000/api/tts?lang=${code}&text=${encodeURIComponent(text)}`;
+        const audio = new Audio(url);
+        audio.play().catch(e => console.error("Audio playback failed", e));
+        return;
+      }
+    }
 
     const speech = new SpeechSynthesisUtterance(text);
-
-    let voices = window.speechSynthesis.getVoices();
 
     if (!voices.length) {
       window.speechSynthesis.onvoiceschanged = () => {
@@ -87,20 +133,27 @@ export default function Chatbot() {
     let selectedVoice;
 
     if (language === "Telugu") {
-      selectedVoice = voices.find(v => v.lang.includes("te"));
+      selectedVoice = voices.find(v => v.lang.includes("te") || v.name.toLowerCase().includes("telugu"));
     } else if (language === "Hindi") {
-      selectedVoice = voices.find(v => v.lang.includes("hi"));
+      selectedVoice = voices.find(v => v.lang.includes("hi") || v.name.toLowerCase().includes("hindi"));
     } else {
-      selectedVoice = voices.find(v => v.lang.includes("en"));
+      selectedVoice = voices.find(v => v.lang.includes("en-IN") || v.lang.includes("en-US") || v.lang.includes("en"));
     }
 
     if (!selectedVoice) {
+      // Fallback if browser absolutely doesn't have the voice
       selectedVoice = voices.find(v => v.lang.includes("en"));
+      if (language !== "English") {
+        console.warn(`Native ${language} voice not found on this OS/Browser. Falling back to default.`);
+      }
     }
 
     if (selectedVoice) {
       speech.voice = selectedVoice;
-      speech.lang = selectedVoice.lang;
+      speech.lang = selectedVoice.lang || (language === "Telugu" ? "te-IN" : language === "Hindi" ? "hi-IN" : "en-IN");
+    } else {
+      // Hard fallback if no voices loaded
+      speech.lang = language === "Telugu" ? "te-IN" : language === "Hindi" ? "hi-IN" : "en-IN";
     }
 
     speech.rate = 0.9;
@@ -108,7 +161,6 @@ export default function Chatbot() {
   };
 
   const stopSpeaking = () => window.speechSynthesis.cancel();
-  const toggleMute = () => setIsMuted(!isMuted);
 
   const handleInputChange = (e) => {
     setFarmerDetails({
@@ -158,14 +210,14 @@ export default function Chatbot() {
 
       const answer = res.data.response.answer;
       speakText(answer);
+      setLastCategory(res.data.selectedAgent || "virtual");
 
       setMessages((prev) => {
         notificationSound.play();
         return [
           ...prev,
           { sender: "bot", text: answer },
-          { sender: "bot", type: "feedback", text: "Are you satisfied with this answer?" },
-          { sender: "bot", type: "expert", text: "Do you want to consult an expert?" }
+          { sender: "bot", type: "feedback", text: "Are you satisfied with this answer?" }
         ];
       });
 
@@ -181,6 +233,11 @@ export default function Chatbot() {
     if (type === "yes") {
       setMessages((prev) => [...prev, { sender: "bot", text: "Glad I could help! 😊" }]);
     } else {
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: `👨‍🔬 Redirecting to ${lastCategory} expert...` }
+      ]);
+      
       const res = await axios.post("http://localhost:5000/agent/query", {
         farmerId: user?._id || "farmer1",
         question: lastQuestion,
@@ -188,61 +245,31 @@ export default function Chatbot() {
         language
       });
 
-      setMessages((prev) => [
-        ...prev,
-        { sender: "bot", text: "🔄 Getting expert answer..." },
-        { sender: "bot", text: res.data.response.answer }
-      ]);
+      const answer = res.data.response.answer;
+      speakText(answer);
+
+      setMessages((prev) => {
+        return [
+          ...prev,
+          { sender: "bot", text: answer },
+          { sender: "bot", type: "expert", text: "Need further help? Consult a real expert." }
+        ];
+      });
     }
   };
 
   const openExperts = () => {
-    window.location.href = `http://localhost:5000/experts.html`;
+    window.location.href = "/experts";
   };
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") sendQuestion();
   };
 
-  // 🔥 TOP LOGIN BAR
-  const TopBar = () => (
-    <div style={{
-      width: "100%",
-      padding: "10px",
-      display: "flex",
-      justifyContent: "flex-end",
-      gap: "10px",
-      background: "#eee"
-    }}>
-      {!user ? (
-        <>
-          <button onClick={() => window.location.href = "http://localhost:5000/login.html?role=farmer"}>
-  Farmer Login
-</button>
-
-<button onClick={() => window.location.href = "http://localhost:5000/login.html?role=expert"}>
-  Expert Login
-</button>
-        </>
-      ) : (
-        <>
-          <span>{user.name}</span>
-          <button onClick={() => {
-            localStorage.removeItem("user");
-            window.location.reload();
-          }}>
-            Logout
-          </button>
-        </>
-      )}
-    </div>
-  );
-
-  // ---------------- FORM ----------------
+  // 🔥 TOP LOGIN BAR REMOVED - Handled by NavBar
   if (showForm) {
     return (
       <>
-        <TopBar />
         <div className="chat-container">
           <h2>🌱 Farmer Registration</h2>
 
@@ -266,7 +293,6 @@ export default function Chatbot() {
   // ---------------- CHAT ----------------
   return (
     <>
-      <TopBar />
       <div className="chat-container">
         <h2>🌾 AI Crop Assistant</h2>
 
@@ -277,16 +303,17 @@ export default function Chatbot() {
         </select>
 
         <div>
-          <button onClick={toggleMute}>
-            {isMuted ? "🔈 Unmute" : "🔇 Mute"}
-          </button>
-          <button onClick={stopSpeaking}>⏹ Stop</button>
+          <button onClick={stopSpeaking}>⏹ Stop Speaking</button>
         </div>
 
         <div className="messages">
           {messages.map((msg, i) => (
             <div key={i} className={msg.sender}>
-              <p>{msg.text}</p>
+              {msg.sender === "bot" ? (
+                <ReactMarkdown>{msg.text}</ReactMarkdown>
+              ) : (
+                <p>{msg.text}</p>
+              )}
 
               {msg.sender === "bot" && (
                 <button onClick={() => speakText(msg.text)}>🔊</button>
@@ -304,6 +331,7 @@ export default function Chatbot() {
               )}
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
 
         <div className="input-area">

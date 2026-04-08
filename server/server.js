@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const axios = require("axios");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
@@ -14,6 +15,7 @@ const Post = require("./models/Post");
 const Answer = require("./models/Answer");
 const Expert = require("./models/Expert");
 const Message = require("./models/Message");
+const ChatRequest = require("./models/ChatRequest");
 const authRoutes = require("./routes/authRoutes");
 
 const app = express();
@@ -96,6 +98,68 @@ io.on("connection", (socket) => {
 
 // ================= APIs =================
 
+app.get("/api/tts", async (req, res) => {
+  try {
+    const { text, lang = "en" } = req.query;
+    if (!text) return res.status(400).send("No text provided");
+    
+    // We fetch the MP3 stream directly from Google, completely bypassing CORS
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&client=tw-ob`;
+    const audioRes = await axios.get(url, { responseType: 'stream' });
+    
+    res.set('Content-Type', 'audio/mpeg');
+    audioRes.data.pipe(res);
+  } catch (error) {
+    console.error("TTS proxy error:", error.message);
+    res.status(500).send("Error generating audio");
+  }
+});
+
+// Phase 5: Soil Detection ML Proxy
+const multer = require("multer");
+const FormData = require("form-data");
+const fs = require("fs");
+const upload = multer({ dest: "uploads/" }); // Mock temporary upload dir
+
+app.post("/api/detect-soil", upload.single("image"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No image uploaded" });
+
+  try {
+    const formData = new FormData();
+    formData.append("image", fs.createReadStream(req.file.path));
+
+    const mlRes = await axios.post("http://localhost:5001/predict-soil", formData, {
+      headers: formData.getHeaders()
+    });
+
+    res.json(mlRes.data);
+  } catch (error) {
+    console.error("ML proxy error:", error.message);
+    res.status(500).json({ error: "Could not process image" });
+  } finally {
+    fs.unlink(req.file.path, () => {}); // clean up temporary file
+  }
+});
+
+app.get("/api/agri-news", async (req, res) => {
+  try {
+    const subreddits = "IndiaFarmingBusiness+AgriStudentsIndia+IndianFarmers+OrganicFarming+farmingIndia+farming+agriculture";
+    const url = `https://www.reddit.com/r/${subreddits}/hot.json?limit=5`;
+    const redditRes = await axios.get(url, { headers: { 'User-Agent': 'AgriAIAdvisory/1.0' } });
+    
+    const posts = redditRes.data.data.children.map(child => ({
+      title: child.data.title,
+      url: `https://reddit.com${child.data.permalink}`,
+      author: child.data.author,
+      score: child.data.score
+    }));
+    res.json(posts);
+  } catch (error) {
+    console.error("News fetch error:", error);
+    res.status(500).json({ error: "Could not fetch news" });
+  }
+});
+
 
 app.post("/rate-expert", async (req, res) => {
   try {
@@ -129,50 +193,50 @@ app.get("/messages/:room", async (req, res) => {
   }
 });
 
-let chatRequests = [];
-
 // SAVE REQUEST
-app.post("/request-chat", (req, res) => {
-  const { farmer_id, expert_id } = req.body;
-
-  console.log("Saving request:", farmer_id, expert_id);
-
-  chatRequests.push({
-    farmer_id,
-    expert_id   // ✅ DO NOT CHANGE THIS
-  });
-
-  console.log("All requests:", chatRequests);
-
-  res.send("Request sent");
+app.post("/request-chat", async (req, res) => {
+  try {
+    const { farmer_id, expert_id } = req.body;
+    console.log("Saving request:", farmer_id, expert_id);
+    const newReq = new ChatRequest({ farmer_id, expert_id });
+    await newReq.save();
+    res.send("Request sent");
+  } catch (err) {
+    res.status(500).send("Error saving request");
+  }
 });
 
 // GET REQUESTS
-app.get("/expert-requests/:expert_id", (req, res) => {
-  const expertId = req.params.expert_id;
-
-  console.log("Fetching for:", expertId);
-  console.log("Stored:", chatRequests);
-
-  const requests = chatRequests.filter(
-    r => r.expert_id === expertId   // ✅ EXACT MATCH
-  );
-
-  res.json(requests);
+app.get("/expert-requests/:expert_id", async (req, res) => {
+  try {
+    const expertId = req.params.expert_id;
+    // populate farmer details
+    const requests = await ChatRequest.find({ expert_id: expertId }).sort({ createdAt: -1 }).populate("farmer_id", "name email").lean();
+    
+    // Attach farmer memory
+    const FarmerMemory = require("./models/FarmerMemory");
+    for (let reqData of requests) {
+      if (reqData.farmer_id) {
+        const mem = await FarmerMemory.findOne({ farmerId: reqData.farmer_id._id.toString() });
+        reqData.memory = mem;
+      }
+    }
+    
+    res.json(requests);
+  } catch (err) {
+    res.status(500).send("Error fetching requests");
+  }
 });
 
-// get requests
-app.get("/expert-requests/:expert_id", (req, res) => {
-  const expertId = req.params.expert_id;
-
-  console.log("Requested expert_id:", req.params.expert_id);
-console.log("Stored requests:", chatRequests);
-
-  const requests = chatRequests.filter(
-    r => r.expert_id === expertId
-  );
-
-  res.json(requests);
+// GET FARMER REQUESTS (FOR PRIVATE COMMUNITY CHATS)
+app.get("/farmer-requests/:farmer_id", async (req, res) => {
+  try {
+    const farmerId = req.params.farmer_id;
+    const requests = await ChatRequest.find({ farmer_id: farmerId }).populate("expert_id", "name specialization email");
+    res.json(requests);
+  } catch (err) {
+    res.status(500).send("Error fetching farmer requests");
+  }
 });
 
 // 👉 Register Expert
@@ -182,7 +246,8 @@ app.post("/register-expert", async (req, res) => {
       ...req.body,
       is_approved: true, // ✅ FIX
       rating: 0,
-      total_ratings: 0
+      total_ratings: 0,
+      resolved_cases: 0
     });
 
     await expert.save();
@@ -191,6 +256,48 @@ app.post("/register-expert", async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).send("Error registering expert");
+  }
+});
+
+// 👉 Get Expert Profile by user_id
+app.get("/expert-profile/:user_id", async (req, res) => {
+  try {
+    const expert = await Expert.findOne({ user_id: req.params.user_id });
+    if (!expert) return res.status(404).json({ error: "Expert profile not found" });
+    res.json(expert);
+  } catch (err) {
+    res.status(500).send("Error fetching expert profile");
+  }
+});
+
+// 👉 Update Expert Profile
+app.put("/expert-profile/update", async (req, res) => {
+  try {
+    const { user_id, name, specialization, languages, location, about, experience_years } = req.body;
+    const updated = await Expert.findOneAndUpdate(
+      { user_id },
+      { $set: { name, specialization, languages, location, about, experience_years } },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ error: "Expert not found" });
+    res.json({ message: "Expert profile updated", expert: updated });
+  } catch (err) {
+    res.status(500).send("Error updating expert profile");
+  }
+});
+
+// 👉 Increment resolved_cases for an expert
+app.post("/expert-resolve/:user_id", async (req, res) => {
+  try {
+    const updated = await Expert.findOneAndUpdate(
+      { user_id: req.params.user_id },
+      { $inc: { resolved_cases: 1 } },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ error: "Expert not found" });
+    res.json({ message: "Case resolved", resolved_cases: updated.resolved_cases });
+  } catch (err) {
+    res.status(500).send("Error updating resolved cases");
   }
 });
 
@@ -242,10 +349,10 @@ app.get("/answers/:post_id", async (req, res) => {
   try {
     const answers = await Answer.find({
       post_id: req.params.post_id
-    }).sort({ createdAt: -1 });
+    }).populate("expert_id", "name email").sort({ createdAt: -1 });
 
     res.json(answers);
-  } catch {
+  } catch (err) {
     res.status(500).send("Error fetching answers");
   }
 });
@@ -264,9 +371,10 @@ app.post("/create-post", async (req, res) => {
 // 👉 Get Posts
 app.get("/posts", async (req, res) => {
   try {
-    const posts = await Post.find().sort({ createdAt: -1 });
+    const posts = await Post.find().populate("farmer_id", "name email").sort({ createdAt: -1 });
     res.json(posts);
-  } catch {
+  } catch (err) {
+    console.log(err);
     res.status(500).send("Error fetching posts");
   }
 });

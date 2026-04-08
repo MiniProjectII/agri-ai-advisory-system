@@ -1,4 +1,4 @@
-const getHFAnswer = require("../services/huggingfaceService");
+const getHFAnswer = require("../services/geminiService");
 
 async function fertilizerAgent(query, farmerMemory) {
   const crop = farmerMemory?.previousCrops?.[0] || "crop";
