@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 const Expert = require("../models/Expert");
 
 router.post("/register", async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, location, soilType } = req.body;
 
   const hashed = await bcrypt.hash(password, 10);
 
@@ -28,7 +28,7 @@ router.post("/register", async (req, res) => {
       specialization: "General",
       experience_years: 1,
       languages: ["English"],
-      location: "India",
+      location: location || "India",
       rating: 0,
       total_ratings: 0,
       is_approved: true
@@ -37,6 +37,22 @@ router.post("/register", async (req, res) => {
     await expert.save();
 
     console.log("✅ Expert created:", expert);
+  }
+
+  // 🔥 LINK USER → FARMER MEMORY
+  if (role === "farmer") {
+    const FarmerMemory = require("../models/FarmerMemory");
+    const mem = new FarmerMemory({
+      farmerId: user._id,
+      name: name,
+      location: location || "",
+      soilType: soilType || "",
+      previousCrops: [],
+      pastIssues: [],
+      fertilizerUsage: []
+    });
+    await mem.save();
+    console.log("✅ FarmerMemory created");
   }
 
   res.send("User registered");

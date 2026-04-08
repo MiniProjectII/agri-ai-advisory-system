@@ -16,6 +16,49 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [detecting, setDetecting] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+
+  const handleLocationDetect = () => {
+    if ("geolocation" in navigator) {
+      setDetectingLocation(true);
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          // Free Nominatim reverse geocoding API
+          const res = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18`);
+          const addr = res.data.address || {};
+          
+          // Deep Locality mapping
+          const preciseLocality = addr.suburb || addr.neighbourhood || addr.city_district || addr.town || addr.village || addr.city || addr.county;
+          const state = addr.state || addr.region || "Unknown State";
+          const locationString = preciseLocality ? `${preciseLocality}, ${state}` : state;
+          
+          // Simple mocked soil mapping by region
+          let mockSoilType = "Alluvial Soil";
+          const lowerState = state.toLowerCase();
+          if (lowerState.includes("telangana") || lowerState.includes("andhra") || lowerState.includes("maharashtra")) mockSoilType = "Black Soil";
+          else if (lowerState.includes("tamil nadu") || lowerState.includes("karnataka") || lowerState.includes("odisha")) mockSoilType = "Red Soil";
+          else if (lowerState.includes("rajasthan") || lowerState.includes("gujarat")) mockSoilType = "Desert Soil";
+          else if (lowerState.includes("kerala") || lowerState.includes("assam")) mockSoilType = "Laterite Soil";
+          
+          setFormData(prev => ({
+            ...prev,
+            location: locationString,
+            soilType: prev.soilType || mockSoilType
+          }));
+        } catch(err) {
+          alert("Failed to fetch location details.");
+        } finally {
+          setDetectingLocation(false);
+        }
+      }, (error) => {
+        setDetectingLocation(false);
+        alert("Geolocation error: " + error.message);
+      });
+    } else {
+      alert("Geolocation is not supported by your browser.");
+    }
+  };
 
   const handleSoilDetect = async (e) => {
     const file = e.target.files[0];
@@ -106,7 +149,12 @@ export default function Profile() {
         </div>
 
         <div>
-           <label style={{ display: "block", marginBottom: "5px", color: "var(--text-secondary)", fontSize: "0.9em" }}>Location (City, State)</label>
+           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+             <label style={{ display: "block", marginBottom: "5px", color: "var(--text-secondary)", fontSize: "0.9em" }}>Location (City, State)</label>
+             <button type="button" onClick={handleLocationDetect} disabled={detectingLocation} style={{ background: "none", border: "none", color: "var(--emerald-primary)", cursor: "pointer", fontSize: "0.85em", textDecoration: "underline", padding: 0 }}>
+               {detectingLocation ? "Detecting..." : "📍 Auto-Detect Location"}
+             </button>
+           </div>
            <input name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Hyderabad, TS" required />
         </div>
 

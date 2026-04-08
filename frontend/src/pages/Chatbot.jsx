@@ -169,6 +169,7 @@ export default function Chatbot() {
     });
   };
 
+
   // ---------------- SAVE ----------------
   const saveFarmerDetails = async () => {
     try {
@@ -279,10 +280,12 @@ export default function Chatbot() {
             <option>Hindi</option>
           </select>
 
-          <input name="name" placeholder="Name" onChange={handleInputChange} />
-          <input name="location" placeholder="Location" onChange={handleInputChange} />
-          <input name="soilType" placeholder="Soil" onChange={handleInputChange} />
-          <input name="ph" placeholder="pH" onChange={handleInputChange} />
+          <input name="name" placeholder="Name" value={farmerDetails.name} onChange={handleInputChange} />
+          
+          <input name="location" placeholder="Location" value={farmerDetails.location} onChange={handleInputChange} />
+
+          <input name="soilType" placeholder="Soil" value={farmerDetails.soilType} onChange={handleInputChange} />
+          <input name="ph" placeholder="pH" value={farmerDetails.ph} onChange={handleInputChange} />
 
           <button onClick={saveFarmerDetails}>Start</button>
         </div>

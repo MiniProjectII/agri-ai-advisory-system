@@ -9,21 +9,21 @@ const Knowledge = require("../models/Knowledge");
 
 // Add new knowledge manually
 router.post("/add", async (req, res) => {
-    try {
-        const { question, keywords, answer } = req.body;
+  try {
+    const { question, keywords, answer } = req.body;
 
-        const newEntry = new Knowledge({
-            question,
-            keywords,
-            answer
-        });
+    const newEntry = new Knowledge({
+      question,
+      keywords,
+      answer
+    });
 
-        await newEntry.save();
-        res.json({ message: "Knowledge added successfully" });
+    await newEntry.save();
+    res.json({ message: "Knowledge added successfully" });
 
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Search knowledge base
@@ -56,7 +56,7 @@ router.post("/search", async (req, res) => {
 
     // Gemini fallback
     const model = genAI.getGenerativeModel({
-        model: "gemini-2.5-flash"   // or "gemini-1.5-pro"
+      model: "gemini-2.5-flash"   // or "gemini-1.5-pro"
     });
 
     const aiResponse = await model.generateContent(question);

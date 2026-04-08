@@ -14,14 +14,14 @@ model = tf.keras.models.load_model("crop_model.h5")
 scaler = joblib.load("scaler.pkl")
 label_encoder = joblib.load("label_encoder.pkl")
 
-# Load Soil Color Model
+# Load Soil CNN Model
 try:
-    soil_model = joblib.load("soil_model.pkl")
-    soil_encoder = joblib.load("soil_encoder.pkl")
+    soil_model = tf.keras.models.load_model("soil_model_cnn.h5")
+    soil_classes = joblib.load("soil_classes.pkl")
 except Exception as e:
-    print("Warning: Soil model not found. Run train_soil.py first.")
+    print("Warning: Soil CNN model or classes not found. Run train_soil_cnn.py first.")
     soil_model = None
-    soil_encoder = None
+    soil_classes = None
 
 ph_mapping = {
     'Red Soil': 6.5,
@@ -67,7 +67,7 @@ def predict():
 
 @app.route("/predict-soil", methods=["POST"])
 def predict_soil():
-    if not soil_model:
+    if not soil_model or not soil_classes:
         return jsonify({"error": "Soil model not initialized"}), 500
         
     if "image" not in request.files:
@@ -76,21 +76,26 @@ def predict_soil():
     try:
         file = request.files["image"]
         img = Image.open(file.stream).convert('RGB')
-        img = img.resize((50, 50))  # resize to speed up
-        pixels = np.array(img).reshape(-1, 3)
-        avg_color = pixels.mean(axis=0)
+        img = img.resize((224, 224))  # Resize for ResNet50
         
-        input_data = np.array([avg_color])
-        prediction = soil_model.predict(input_data)
-        soil_type = soil_encoder.inverse_transform(prediction)[0]
+        # Preprocess input as ResNet expects
+        img_array = np.array(img)
+        img_array = np.expand_dims(img_array, axis=0) # Add batch dimension
+        img_preprocessed = tf.keras.applications.resnet50.preprocess_input(img_array)
         
-        ph_val = ph_mapping.get(soil_type, 6.5)
+        # Predict using CNN
+        prediction = soil_model.predict(img_preprocessed)
+        predicted_class_index = np.argmax(prediction[0])
+        soil_type = soil_classes.get(predicted_class_index, "Unknown Soil")
+        
+        # Assign a random plausible pH (as user requested)
+        ph_val = round(np.random.uniform(5.5, 7.5), 1)
         
         return jsonify({
             "success": True,
             "soilType": soil_type,
             "ph": ph_val,
-            "message": f"Detected {soil_type} with typical pH {ph_val}"
+            "message": f"Detected {soil_type} from image. Plausible pH assigned: {ph_val}"
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

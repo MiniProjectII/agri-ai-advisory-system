@@ -51,7 +51,7 @@ export default function NavBar() {
         {user.role === "farmer" && (
           <div style={{ display: "flex", gap: "20px", marginLeft: "20px" }}>
             <Link to="/ai-assistant">AI Assistant</Link>
-            <Link to="/crop-recommend">Crop AI</Link>
+            <Link to="/crop-recommend">Smart Crop</Link>
             <Link to="/community">Community</Link>
             <Link to="/experts">Find Expert</Link>
             <Link to="/profile">Profile</Link>

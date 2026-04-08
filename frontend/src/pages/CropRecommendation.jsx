@@ -14,6 +14,7 @@ export default function CropRecommendation() {
   });
 
   const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -24,24 +25,28 @@ export default function CropRecommendation() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setResult("");
+    setLoading(true);
 
     try {
       const response = await axios.post(
         "http://127.0.0.1:5001/predict",
         formData
       );
-
       setResult(response.data.recommended_crop);
     } catch (error) {
       alert("Error connecting to backend");
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="crop-section">
-      <h2>Crop Recommendation</h2>
+      <h2>Smart Crop Predictor</h2>
       <p className="crop-desc">
-        Enter soil nutrients and weather values to get the best crop suggestion.
+        Enter soil nutrients and weather values to get the smartest crop suggestion.
       </p>
 
       <form className="crop-form" onSubmit={handleSubmit}>
@@ -62,7 +67,7 @@ export default function CropRecommendation() {
 
         <div className="form-group">
           <label>Temperature (°C)</label>
-          <input type="number" name="temperature" placeholder="Enter temperature" onChange={handleChange} required />
+          <input type="number" step="0.1" name="temperature" placeholder="Enter temperature" onChange={handleChange} required />
         </div>
 
         <div className="form-group">
@@ -80,11 +85,11 @@ export default function CropRecommendation() {
           <input type="number" name="rainfall" placeholder="Enter rainfall" onChange={handleChange} required />
         </div>
 
-        <button type="submit">Predict Crop</button>
+        <button type="submit" disabled={loading}>{loading ? "Predicting..." : "Predict Crop"}</button>
       </form>
 
       {result && (
-        <div className="crop-result">
+        <div className="crop-result" style={{ marginTop: "20px", padding: "20px", background: "var(--surface-color)", borderRadius: "8px", border: "1px solid var(--border-color)", textAlign: "center", fontSize: "1.2rem", fontWeight: "bold", color: "var(--emerald-primary)" }}>
           Recommended Crop: {result}
         </div>
       )}

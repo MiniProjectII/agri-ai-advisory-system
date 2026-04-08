@@ -8,7 +8,51 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState("farmer");
+  
+  // Custom Farmer setup
+  const [location, setLocation] = useState("");
+  const [soilType, setSoilType] = useState("");
+  const [detectingLocation, setDetectingLocation] = useState(false);
+
   const navigate = useNavigate();
+
+  const handleLocationDetect = () => {
+    if ("geolocation" in navigator) {
+      setDetectingLocation(true);
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          // Free Nominatim reverse geocoding API
+          const res = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18`);
+          const addr = res.data.address || {};
+          
+          // Deep Locality mapping
+          const preciseLocality = addr.suburb || addr.neighbourhood || addr.city_district || addr.town || addr.village || addr.city || addr.county;
+          const state = addr.state || addr.region || "Unknown State";
+          const locationString = preciseLocality ? `${preciseLocality}, ${state}` : state;
+          
+          let mockSoilType = "Alluvial Soil";
+          const lowerState = state.toLowerCase();
+          if (lowerState.includes("telangana") || lowerState.includes("andhra") || lowerState.includes("maharashtra")) mockSoilType = "Black Soil";
+          else if (lowerState.includes("tamil nadu") || lowerState.includes("karnataka") || lowerState.includes("odisha")) mockSoilType = "Red Soil";
+          else if (lowerState.includes("rajasthan") || lowerState.includes("gujarat")) mockSoilType = "Desert Soil";
+          else if (lowerState.includes("kerala") || lowerState.includes("assam")) mockSoilType = "Laterite Soil";
+          
+          setLocation(locationString);
+          setSoilType(mockSoilType);
+        } catch(err) {
+          alert("Failed to fetch location details.");
+        } finally {
+          setDetectingLocation(false);
+        }
+      }, (error) => {
+        setDetectingLocation(false);
+        alert("Geolocation error: " + error.message);
+      });
+    } else {
+      alert("Geolocation is not supported by your browser.");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,7 +68,7 @@ export default function Login() {
           navigate("/ai-assistant");
         }
       } else {
-        await axios.post("http://localhost:5000/auth/register", { name, email, password, role });
+        await axios.post("http://localhost:5000/auth/register", { name, email, password, role, location, soilType });
         alert("Registered successfully! Please login.");
         setIsLogin(true);
       }
@@ -35,7 +79,7 @@ export default function Login() {
 
   return (
     <div style={{ display: "flex", height: "100vh", width: "100%", alignItems: "center", justifyContent: "center" }}>
-      <div className="glass-panel" style={{ display: "flex", width: "1000px", maxWidth: "95%", height: "650px", overflow: "hidden", padding: 0 }}>
+      <div className="glass-panel" style={{ display: "flex", width: "1000px", maxWidth: "95%", height: "700px", overflow: "hidden", padding: 0 }}>
         {/* Left side */}
         <div style={{ 
           flex: 1, 
@@ -64,10 +108,22 @@ export default function Login() {
             {!isLogin && (
               <>
                 <input required type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} />
-                <select value={role} onChange={e => setRole(e.target.value)} style={{ appearance: "none" }}>
+                <select value={role} onChange={e => setRole(e.target.value)} style={{ appearance: "none", padding: "10px", borderRadius: "5px" }}>
                   <option value="farmer" style={{ background: "var(--bg-secondary)" }}>Farmer</option>
                   <option value="expert" style={{ background: "var(--bg-secondary)" }}>Expert</option>
                 </select>
+                {role === "farmer" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", border: "1px dashed var(--emerald-primary)", padding: "15px", borderRadius: "8px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                       <label style={{ color: "var(--text-secondary)", fontSize: "0.85em" }}>Farm Details (Optional)</label>
+                       <button type="button" onClick={handleLocationDetect} disabled={detectingLocation} style={{ background: "none", border: "none", color: "var(--emerald-primary)", cursor: "pointer", fontSize: "0.85em", textDecoration: "underline", padding: 0 }}>
+                         {detectingLocation ? "Detecting..." : "📍 Auto-Detect"}
+                       </button>
+                    </div>
+                    <input type="text" placeholder="Location (City, State)" value={location} onChange={e => setLocation(e.target.value)} />
+                    <input type="text" placeholder="Soil Type" value={soilType} onChange={e => setSoilType(e.target.value)} />
+                  </div>
+                )}
               </>
             )}
             <input required type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />

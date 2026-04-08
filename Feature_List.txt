@@ -1,0 +1,33 @@
+# AgriAI Advisory System: Complete Feature & Architecture List
+
+This document theoretically outlines the core features currently active inside the AgriAI 2.0 system, mapped to their low-level framework implementations. 
+
+---
+
+### 1. Smart Crop Predictor
+* **Purpose**: Allows farmers to manually input highly specific scientific data (N, P, K, pH, humidity, temperature, rainfall) to deduce the singular best crop to plant statistically.
+* **Theoretical Implementation**: Leverages a robust Machine Learning algorithm served via a discrete Python `Flask` API. Uses standard `joblib` preprocessing tools (`scaler`, `label_encoder`) to digest the JSON payload out of the Node.js backend. A pre-compiled `.h5` matrix determines the most likely classification output and pipes it cleanly back into the React UI.
+
+### 2. CNN Image-to-Soil Classification
+* **Purpose**: Farmers can upload an image of their farm directly from their devices to have the AI identify their local Soil Type and automatically assign a plausible pH value.
+* **Theoretical Implementation**: Uses a **ResNet50** Convolutional Neural Network (CNN) architecture inside `train_soil_cnn.py`. It explicitly passes imagery through `Pillow` and `numpy` arrays into `tensorflow.keras.applications.resnet50` preprocessors. The Flask microservice exposes a multipart-form proxy `POST /predict-soil` where the image array natively deduces one of the trained soil classes natively.
+
+### 3. Extremely Precise Geo-location Mapping
+* **Purpose**: The Registration and Profile modules instantly identify exactly where the farmer is standing, dynamically assuming the overarching soil-type prevalent in their native state.
+* **Theoretical Implementation**: Integrates native HTML5 Web API `navigator.geolocation` to extract pinpoint `{ latitude, longitude }`. Instantly relays this payload to the free HTTP Nominatim (`OpenStreetMap`) server to extract reverse-geocode parameters, systematically traversing `suburb -> village -> city_district -> county` recursively to establish a perfectly accurate geographical anchor.
+
+### 4. Multilingual Generative Voice Chatbot
+* **Purpose**: Farmers can literally speak to a dynamic AgriAI agent in English, Hindi, or Telugu. The backend intelligently routes their questions to distinct expert "personas".
+* **Theoretical Implementation**: Capitalizes on the `Google Web Speech API` for speech-to-text. The text payload routes to an Express.js backend where custom `GoogleGenerativeAI (gemini-2.5-flash)` prompts dynamically roleplay as distinct specialized entities (Weather Expert, Fertilizer Expert, Disease Expert). Feedback strings are funneled through a custom proxy API hitting the native Google Translate Text-to-Speech stream, completely bypassing browser CORS parameters. 
+
+### 5. Open Knowledge Community Forum
+* **Purpose**: A native space where farmers can post open questions, and verified experts can append permanent, helpful answers.
+* **Theoretical Implementation**: Fueled by a robust `MongoDB / Mongoose` dual schema architecture (`Post` & `Answer`). The front-end React interface loops over localized caching structures from the REST API to display threads temporally.
+
+### 6. Synchronous Expert Live Conferencing
+* **Purpose**: Farmers can bypass the AI entirely and request peer-to-peer live chat assistance from vetted agronomic experts natively inside a private room workspace.
+* **Theoretical Implementation**: Underpinned by `Socket.io` bi-directional event handlers over HTTP. Users join discrete `room` variables where `socket.emit("send_message")` triggers instant real-world `MongoDB` cache writing inside the internal `Message` schema so conversation histories survive app reloading.
+
+### 7. Farmer-to-Expert Upgrading Pipeline (Admin Managed)
+* **Purpose**: Allows immensely successful legacy Farmers to petition the system dynamically to be rebranded as Verified Experts.
+* **Theoretical Implementation**: Currently in active development. By theoretically pushing a flag over a specialized React component (`isApplying: true`), a dedicated super-user Admin dashboard polls the `/farmers/applicants` endpoint. Upon reviewing their `FarmerMemory` parameters (Crop yield histories, longevity), an Admin triggers a `PUT` mutation updating their core `User` model to `role: "expert"` while instantly appending an `Expert` schema reference strictly bound to their core `ObjectId()`.
