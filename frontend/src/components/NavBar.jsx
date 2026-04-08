@@ -37,68 +37,79 @@ export default function NavBar() {
 
   return (
     <nav className="glass-panel" style={{
-      display: "flex", 
-      gap: "20px", 
-      padding: "15px 30px", 
+      display: "flex",
+      gap: "20px",
+      padding: "15px 30px",
       margin: "20px",
       borderRadius: "15px",
       justifyContent: "space-between",
       alignItems: "center"
     }}>
       <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-        <h3 style={{ margin: 0, color: "var(--accent-color)" }}>🌱 AgriAI</h3>
-        
-        {user.role === "farmer" && (
+        <h3 style={{ margin: 0, color: "var(--accent-color)" }}>🌱 HarvestMate</h3>
+
+<<<<<<< HEAD
+  {
+    user.role === "farmer" && (
           <div style={{ display: "flex", gap: "20px", marginLeft: "20px" }}>
             <Link to="/ai-assistant">AI Assistant</Link>
             <Link to="/crop-recommend">Smart Crop</Link>
+=======
+        {(user.role === "farmer" || user.role === "farmer_expert") && (
+          <div style={{ display: "flex", gap: "15px", marginLeft: "20px", alignItems: "center" }}>
+            <Link to="/ai-assistant">Smart Advisor</Link>
+>>>>>>> origin/my-new-branch
             <Link to="/community">Community</Link>
             <Link to="/experts">Find Expert</Link>
+            <Link to="/market">Market</Link>
             <Link to="/profile">Profile</Link>
+            {user.role === "farmer" && user.originalRole !== "farmer_expert" && (
+              <Link to="/apply-expert" style={{ padding: "4px 10px", background: "var(--bg-secondary)", borderRadius: "6px", fontSize: "0.9em" }}>
+                ⭐ Apply as Expert
+              </Link>
+            )}
           </div>
         )}
 
-        {user.role === "expert" && (
-          <div style={{ display: "flex", gap: "20px", marginLeft: "20px" }}>
-            <Link to="/expert-dashboard">Dashboard</Link>
-            <Link to="/community">Community Forum</Link>
-            <Link to="/expert-profile">Profile</Link>
+        {(user.role === "expert" || user.role === "farmer_expert") && (
+          <div style={{ display: "flex", gap: "15px", marginLeft: "20px", borderLeft: user.role === "farmer_expert" ? "2px solid var(--glass-border)" : "none", paddingLeft: user.role === "farmer_expert" ? "20px" : "0" }}>
+            <Link to="/expert-dashboard">Expert Portal</Link>
+            <Link to="/community">Community</Link>
+            <Link to="/expert-profile">Expert Profile</Link>
           </div>
         )}
       </div>
 
       <div style={{ display: "flex", gap: "15px", alignItems: "center", position: "relative" }}>
         <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>👤 {user.name}</span>
-        
-        <button 
-          onClick={() => setShowSettings(!showSettings)} 
+
+        <button
+          onClick={() => setShowSettings(!showSettings)}
           style={{ padding: "8px 12px", background: "rgba(255,255,255,0.1)", color: "var(--text-primary)" }}>
           ⚙️
         </button>
 
-        {showSettings && (
-          <div className="glass-panel" style={{ 
-            position: "absolute", top: "50px", right: "0", 
-            padding: "15px", zIndex: 100, minWidth: "200px", 
-            display: "flex", flexDirection: "column", gap: "12px",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.5)"
-          }}>
-            <h4 style={{ margin: "0 0 5px 0", color: "var(--emerald-primary)", fontSize: "1rem" }}>Accessibility</h4>
-            
-            <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: "var(--text-primary)" }}>
-              <input type="checkbox" checked={isLgFont} onChange={e => setIsLgFont(e.target.checked)} />
-              Large Font
-            </label>
+        <div className="glass-panel" style={{
+          position: "absolute", top: "50px", right: "0",
+          padding: "15px", zIndex: 99999, minWidth: "200px",
+          display: showSettings ? "flex" : "none", flexDirection: "column", gap: "12px",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.5)"
+        }}>
+          <h4 style={{ margin: "0 0 5px 0", color: "var(--emerald-primary)", fontSize: "1rem" }}>Accessibility</h4>
 
-            <h4 style={{ margin: "10px 0 5px 0", color: "var(--emerald-primary)", fontSize: "1rem" }}>Live Translation</h4>
-            <div id="google_translate_element"></div>
-          </div>
-        )}
+          <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: "var(--text-primary)" }}>
+            <input type="checkbox" checked={isLgFont} onChange={e => setIsLgFont(e.target.checked)} />
+            Large Font
+          </label>
+
+          <h4 style={{ margin: "10px 0 5px 0", color: "var(--emerald-primary)", fontSize: "1rem" }}>Live Translation</h4>
+          <div id="google_translate_element"></div>
+        </div>
 
         <button onClick={handleLogout} className="danger" style={{ padding: "8px 16px" }}>
           Logout
         </button>
       </div>
-    </nav>
+    </nav >
   );
-}
+  }
