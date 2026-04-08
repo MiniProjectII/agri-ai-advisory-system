@@ -44,19 +44,19 @@ export default function LiveChat() {
       return;
     }
 
-    const newSocket = io("http://localhost:5000");
+    const newSocket = io(`http://${window.location.hostname}:5000`);
     setSocket(newSocket);
 
     newSocket.emit("join_room", room);
 
     // Fetch old history
-    axios.get(`http://localhost:5000/messages/${room}`)
+    axios.get(`http://${window.location.hostname}:5000/messages/${room}`)
       .then(res => setMessages(res.data))
       .catch(err => console.error("Could not fetch messages:", err));
 
     // Fetch Farmer Profile if expert
     if (userRole === "expert" && farmerId) {
-      axios.get(`http://localhost:5000/memory/${farmerId}`)
+      axios.get(`http://${window.location.hostname}:5000/memory/${farmerId}`)
         .then(res => setFarmerProfile(res.data))
         .catch(err => console.error("Could not fetch farmer profile:", err));
     }

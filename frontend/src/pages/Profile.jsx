@@ -69,7 +69,7 @@ export default function Profile() {
     fd.append("image", file);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/detect-soil", fd, {
+      const res = await axios.post(`http://${window.location.hostname}:5000/api/detect-soil`, fd, {
         headers: { "Content-Type": "multipart/form-data" }
       });
       if (res.data.success) {
@@ -85,7 +85,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (user && (user.role === "farmer" || user.role === "farmer_expert")) {
-      axios.get(`http://localhost:5000/memory/${user._id}`)
+      axios.get(`http://${window.location.hostname}:5000/memory/${user._id}`)
         .then(res => {
           if (res.data) {
             setFormData({
@@ -120,7 +120,7 @@ export default function Profile() {
     };
 
     try {
-      await axios.post("http://localhost:5000/memory/save", formattedData);
+      await axios.post(`http://${window.location.hostname}:5000/memory/save`, formattedData);
       setSuccess(true);
     } catch (err) {
       alert("Failed to save profile.");

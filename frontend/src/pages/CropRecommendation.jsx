@@ -30,7 +30,7 @@ export default function CropRecommendation() {
 
     try {
       const response = await axios.post(
-        "http://127.0.0.1:5001/predict",
+        `http://${window.location.hostname}:5001/predict`,
         formData
       );
       setResult(response.data.recommended_crop);

@@ -42,7 +42,7 @@ export default function Chatbot() {
 
     // Check memory on load
     if (user?._id) {
-      axios.get(`http://localhost:5000/memory/${user._id}`)
+      axios.get(`http://${window.location.hostname}:5000/memory/${user._id}`)
         .then(res => {
           if (res.data && res.data.location) {
             setFarmerDetails({
@@ -108,7 +108,7 @@ export default function Chatbot() {
       
       if (!hasNativeVoice && voices.length > 0) {
         console.warn(`Native ${language} voice missing. Using HTTP Audio fallback.`);
-        const url = `http://localhost:5000/api/tts?lang=${code}&text=${encodeURIComponent(text)}`;
+        const url = `http://${window.location.hostname}:5000/api/tts?lang=${code}&text=${encodeURIComponent(text)}`;
         const audio = new Audio(url);
         audio.play().catch(e => console.error("Audio playback failed", e));
         return;
@@ -173,7 +173,7 @@ export default function Chatbot() {
   // ---------------- SAVE ----------------
   const saveFarmerDetails = async () => {
     try {
-      await axios.post("http://localhost:5000/memory/save", {
+      await axios.post(`http://${window.location.hostname}:5000/memory/save`, {
         farmerId: user?._id || "farmer1",
         ...farmerDetails,
         preferred_language: language
@@ -203,7 +203,7 @@ export default function Chatbot() {
     });
 
     try {
-      const res = await axios.post("http://localhost:5000/agent/query", {
+      const res = await axios.post(`http://${window.location.hostname}:5000/agent/query`, {
         farmerId: user?._id || "farmer1",
         question,
         language
@@ -239,7 +239,7 @@ export default function Chatbot() {
         { sender: "bot", text: `👨‍🔬 Redirecting to ${lastCategory} expert...` }
       ]);
       
-      const res = await axios.post("http://localhost:5000/agent/query", {
+      const res = await axios.post(`http://${window.location.hostname}:5000/agent/query`, {
         farmerId: user?._id || "farmer1",
         question: lastQuestion,
         forceAgent: true,

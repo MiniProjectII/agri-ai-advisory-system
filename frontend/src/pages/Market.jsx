@@ -38,7 +38,7 @@ export default function Market() {
     // Attempt to load farmer memory to auto-fill their soil type
     const user = JSON.parse(localStorage.getItem("user"));
     if (user && user.role === "farmer") {
-      axios.get(`http://localhost:5000/memory/${user._id}`)
+      axios.get(`http://${window.location.hostname}:5000/memory/${user._id}`)
            .then(res => {
              if (res.data && res.data.soilType) {
                setFarmerSoil(res.data.soilType);
@@ -46,14 +46,14 @@ export default function Market() {
            }).catch(() => {});
     }
 
-    axios.get("http://localhost:5000/api/market/data")
+    axios.get(`http://${window.location.hostname}:5000/api/market/data`)
          .then(res => setMarketData(res.data))
          .catch(() => console.error("Could not fetch market data"));
   }, []);
 
   useEffect(() => {
     // Fetch recommendations when farmer's soil type is confirmed or changes
-    axios.get(`http://localhost:5000/api/market/recommendations?soilType=${farmerSoil}`)
+    axios.get(`http://${window.location.hostname}:5000/api/market/recommendations?soilType=${farmerSoil}`)
          .then(res => setRecommendations(res.data))
          .catch(() => console.error("Could not fetch recommendations"));
   }, [farmerSoil]);

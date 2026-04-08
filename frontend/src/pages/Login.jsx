@@ -57,7 +57,7 @@ export default function Login() {
     e.preventDefault();
     try {
       if (isLogin) {
-        const res = await axios.post("http://localhost:5000/auth/login", { email, password });
+        const res = await axios.post(`http://${window.location.hostname}:5000/auth/login`, { email, password });
         const loggedUser = { ...res.data.user };
         const effectiveRole = loggedUser.role === "farmer_expert" ? loginRole : loggedUser.role;
         loggedUser.originalRole = res.data.user.role; // keep track of true db role just in case
@@ -77,7 +77,7 @@ export default function Login() {
           navigate("/ai-assistant");
         }
       } else {
-        await axios.post("http://localhost:5000/auth/register", { name, email, password, role, proofOfExpertise, location, soilType });
+        await axios.post(`http://${window.location.hostname}:5000/auth/register`, { name, email, password, role, proofOfExpertise, location, soilType });
         alert("Registered successfully! Please login.");
         setIsLogin(true);
       }

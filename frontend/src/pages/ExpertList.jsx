@@ -15,7 +15,7 @@ export default function ExpertList() {
   useEffect(() => {
     async function fetchExperts() {
       try {
-        const res = await axios.get("http://localhost:5000/experts");
+        const res = await axios.get(`http://${window.location.hostname}:5000/experts`);
         
         let fetchedExperts = res.data;
         if (categoryFilter) {
@@ -34,7 +34,7 @@ export default function ExpertList() {
     async function fetchDailyTip() {
       if (user && user.role === "farmer") {
         try {
-          const res = await axios.get(`http://localhost:5000/api/daily-tip/${user._id}`);
+          const res = await axios.get(`http://${window.location.hostname}:5000/api/daily-tip/${user._id}`);
           if (res.data.tip) {
             setDailyTip(res.data.tip);
           }
@@ -48,7 +48,7 @@ export default function ExpertList() {
 
   const requestChat = async (expertId) => {
     try {
-      await axios.post("http://localhost:5000/request-chat", {
+      await axios.post(`http://${window.location.hostname}:5000/request-chat`, {
         farmer_id: user._id,
         expert_id: expertId
       });

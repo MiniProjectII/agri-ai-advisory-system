@@ -18,10 +18,10 @@ export default function Community() {
 
   const fetchPosts = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/posts");
+      const res = await axios.get(`http://${window.location.hostname}:5000/posts`);
       setPosts(res.data);
       res.data.forEach(async (post) => {
-         const ansReq = await axios.get(`http://localhost:5000/answers/${post._id}`);
+         const ansReq = await axios.get(`http://${window.location.hostname}:5000/answers/${post._id}`);
          if (ansReq.data.length > 0) {
             setHasAnswersMap(prev => ({...prev, [post._id]: true}));
          }
@@ -36,7 +36,7 @@ export default function Community() {
   useEffect(() => {
     fetchPosts();
     // Fetch News
-    axios.get("http://localhost:5000/api/agri-news")
+    axios.get(`http://${window.location.hostname}:5000/api/agri-news`)
       .then(res => setNews(res.data))
       .catch(err => console.error(err));
   }, []);
@@ -46,7 +46,7 @@ export default function Community() {
     if (loading) return;
     setLoading(true);
     try {
-      await axios.post("http://localhost:5000/create-post", {
+      await axios.post(`http://${window.location.hostname}:5000/create-post`, {
         farmer_id: user._id,
         title,
         description
@@ -68,7 +68,7 @@ export default function Community() {
       return;
     }
     try {
-      const res = await axios.get(`http://localhost:5000/answers/${postId}`);
+      const res = await axios.get(`http://${window.location.hostname}:5000/answers/${postId}`);
       setAnswers(res.data);
       setActivePost(postId);
     } catch (err) {
@@ -79,7 +79,7 @@ export default function Community() {
   const handleAddAnswer = async (postId) => {
     if (!newAnswer.trim()) return;
     try {
-      await axios.post("http://localhost:5000/add-answer", {
+      await axios.post(`http://${window.location.hostname}:5000/add-answer`, {
         post_id: postId,
         expert_id: user._id,
         answer_text: newAnswer

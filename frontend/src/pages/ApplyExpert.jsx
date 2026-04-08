@@ -23,7 +23,7 @@ export default function ApplyExpert() {
 
     setLoading(true);
     try {
-      await axios.post("http://localhost:5000/auth/apply-expert", {
+      await axios.post(`http://${window.location.hostname}:5000/auth/apply-expert`, {
         user_id: user._id,
         name: user.name,
         specialization,

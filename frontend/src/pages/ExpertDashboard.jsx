@@ -15,7 +15,7 @@ export default function ExpertDashboard() {
 
     async function fetchRequests() {
       try {
-        const res = await axios.get(`http://localhost:5000/expert-requests/${user._id}`);
+        const res = await axios.get(`http://${window.location.hostname}:5000/expert-requests/${user._id}`);
         setRequests(res.data);
       } catch (err) {
         console.error("Error fetching requests:", err);

@@ -19,7 +19,7 @@ export default function AdminDashboard() {
 
   const fetchPending = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/admin/pending-experts");
+      const res = await axios.get(`http://${window.location.hostname}:5000/api/admin/pending-experts`);
       setPendingExperts(res.data);
     } catch (err) {
       console.error(err);
@@ -28,7 +28,7 @@ export default function AdminDashboard() {
 
   const handleApprove = async (id) => {
     try {
-      await axios.patch(`http://localhost:5000/api/admin/approve/${id}`);
+      await axios.patch(`http://${window.location.hostname}:5000/api/admin/approve/${id}`);
       alert("Expert Approved!");
       fetchPending();
     } catch (err) {
@@ -39,7 +39,7 @@ export default function AdminDashboard() {
   const handleReject = async (id) => {
     if (!window.confirm("Are you sure you want to reject this application?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/reject/${id}`);
+      await axios.delete(`http://${window.location.hostname}:5000/api/admin/reject/${id}`);
       fetchPending();
     } catch (err) {
       alert("Failed to reject");

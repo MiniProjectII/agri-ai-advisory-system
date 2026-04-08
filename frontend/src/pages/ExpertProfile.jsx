@@ -19,7 +19,7 @@ export default function ExpertProfile() {
 
   useEffect(() => {
     if (user && (user.role === "expert" || user.role === "farmer_expert")) {
-      axios.get(`http://localhost:5000/expert-profile/${user._id}`)
+      axios.get(`http://${window.location.hostname}:5000/expert-profile/${user._id}`)
         .then(res => {
           if (res.data) {
             setFormData({
@@ -58,7 +58,7 @@ export default function ExpertProfile() {
     };
 
     try {
-      await axios.put("http://localhost:5000/expert-profile/update", payload);
+      await axios.put(`http://${window.location.hostname}:5000/expert-profile/update`, payload);
       setSuccess(true);
     } catch (err) {
       alert("Failed to save profile.");

@@ -48,17 +48,9 @@ export default function NavBar() {
       <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
         <h3 style={{ margin: 0, color: "var(--accent-color)" }}>🌱 HarvestMate</h3>
 
-<<<<<<< HEAD
-  {
-    user.role === "farmer" && (
-          <div style={{ display: "flex", gap: "20px", marginLeft: "20px" }}>
-            <Link to="/ai-assistant">AI Assistant</Link>
-            <Link to="/crop-recommend">Smart Crop</Link>
-=======
         {(user.role === "farmer" || user.role === "farmer_expert") && (
           <div style={{ display: "flex", gap: "15px", marginLeft: "20px", alignItems: "center" }}>
             <Link to="/ai-assistant">Smart Advisor</Link>
->>>>>>> origin/my-new-branch
             <Link to="/community">Community</Link>
             <Link to="/experts">Find Expert</Link>
             <Link to="/market">Market</Link>
@@ -112,4 +104,4 @@ export default function NavBar() {
       </div>
     </nav >
   );
-  }
+}
