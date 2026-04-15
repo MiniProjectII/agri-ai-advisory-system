@@ -37,7 +37,7 @@ function extractRedditData(posts) {
   let formattedData = "Recent Reddit Advice:\n";
   posts.forEach((post, i) => {
     const title = post.data.title;
-    const selftext = post.data.selftext ? post.data.selftext.substring(0, 200) + "..." : "";
+    const selftext = post.data.selftext ? post.data.selftext.substring(0, 100) + "..." : "";
     formattedData += `${i + 1}. ${title} - ${selftext}\n`;
   });
   

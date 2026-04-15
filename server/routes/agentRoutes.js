@@ -65,7 +65,7 @@ router.post("/query", async (req, res) => {
     let historyDoc = await ChatbotHistory.findOne({ farmerId });
     let historyContext = "";
     if (historyDoc && historyDoc.messages && historyDoc.messages.length > 0) {
-      const recentHistory = historyDoc.messages.slice(-6); // Keep last 6 messages
+      const recentHistory = historyDoc.messages.slice(-2); // Keep last 2 messages for smaller token footprint
       historyContext = "\n\nPast Conversation History:\n" + recentHistory.map(m => `${m.role === 'user' ? 'Farmer' : 'AI'}: ${m.content}`).join("\n");
     }
 
@@ -142,8 +142,8 @@ router.post("/query", async (req, res) => {
 
     // 🔥 CLEAN LONG / CUT TEXT
     // 🔥 Step 1: limit length slightly bigger
-if (finalAnswer.length > 600) {
-  finalAnswer = finalAnswer.substring(0, 600);
+if (finalAnswer.length > 2000) {
+  finalAnswer = finalAnswer.substring(0, 2000);
 }
 
 // 🔥 Step 2: split into sentences

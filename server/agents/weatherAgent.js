@@ -31,10 +31,8 @@ ${weatherInfo}
 
 Instructions:
 - Answer in English only
-- Give exactly 4-5 short steps
-- Each step should be 1 line only
-- Keep answer under 120 words
-- Do not give long paragraphs
+- Provide a detailed and elaborate paragraph explaining the solution thoroughly
+- Be conversational and highly personalized to the farmer's situation
 - Complete all sentences properly
 
 Answer:
