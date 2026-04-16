@@ -12,6 +12,7 @@ const memoryRoutes = require("./routes/memoryRoutes");
 const agentRoutes = require("./routes/agentRoutes");
 const marketRoutes = require("./routes/marketRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const getHFAnswer = require("./services/geminiService");
 
 const Post = require("./models/Post");
 const Answer = require("./models/Answer");
@@ -239,7 +240,6 @@ app.get("/api/agri-news", async (req, res) => {
 });
 
 // 👉 Daily Tip Feature
-const getHFAnswer = require("./services/geminiService");
 const FarmerMemory = require("./models/FarmerMemory");
 
 app.get("/api/daily-tip/:farmerId", async (req, res) => {
@@ -247,12 +247,12 @@ app.get("/api/daily-tip/:farmerId", async (req, res) => {
     const farmerId = req.params.farmerId;
     const memory = await FarmerMemory.findOne({ farmerId });
 
-    let cropPrompt = "You are an expert agriculture advisor. Give a short, one-sentence daily tip or suggestion for a farmer. Keep it very brief.";
+    let tip = "Regularly check soil moisture levels early in the morning to optimize water usage and prevent root rot.";
     if (memory && memory.previousCrops && memory.previousCrops.length > 0) {
-      cropPrompt = `You are an expert agriculture advisor. The farmer is currently growing ${memory.previousCrops.join(", ")}. Give a short, one-sentence personalized daily tip for taking care of these crops based on best farming practices.`;
+      tip = `For your actively growing ${memory.previousCrops.join(" and ")}, ensure you monitor for early signs of leaf blight and maintain proper NPK ratios.`;
     }
 
-    const tip = await getHFAnswer(cropPrompt);
+    // Returning a hardcoded static tip to completely skip Gemini Rate Limits
     res.json({ tip });
   } catch (err) {
     console.error("Daily tip error:", err);
@@ -290,6 +290,37 @@ app.get("/messages/:room", async (req, res) => {
     res.json(messages);
   } catch (err) {
     res.status(500).send("Error fetching messages");
+  }
+});
+
+
+// 👉 Analyze Chat History
+app.post("/api/analyze-chat", async (req, res) => {
+  try {
+    const { room } = req.body;
+    if (!room) return res.status(400).send("Room ID required");
+
+    const messages = await Message.find({ room }).sort({ timestamp: 1 });
+    
+    if (!messages || messages.length === 0) {
+      return res.status(404).json({ analysis: "No messages found in this room to analyze." });
+    }
+
+    let transcript = "--- CHAT TRANSCRIPT ---\n";
+    messages.forEach(m => {
+      transcript += `* ${m.sender}: ${m.message}\n`;
+    });
+    transcript += "-----------------------\n";
+
+    const prompt = `You are an AI agricultural assistant. Analyze the following conversation between a farmer and an expert.\n\n1. Summarize the core issue discussed.\n2. Provide 3 clear, actionable next steps for the farmer.\nKeep it concise and practical.\n\nIMPORTANT: Do NOT use any asterisks (**), markdown formatting, or bold text in your response. Return strictly plain text.\n\n${transcript}`;
+    
+    const analysis = await getHFAnswer(prompt);
+    
+    res.json({ analysis });
+
+  } catch (err) {
+    console.error("Analysis Error:", err);
+    res.status(500).send("Error generating analysis");
   }
 });
 

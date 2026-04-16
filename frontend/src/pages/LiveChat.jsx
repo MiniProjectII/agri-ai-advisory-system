@@ -7,12 +7,14 @@ export default function LiveChat() {
   const [searchParams] = useSearchParams();
   const farmerId = searchParams.get("farmer");
   const expertId = searchParams.get("expert");
-  
+
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
+  const [aiSummary, setAiSummary] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [socket, setSocket] = useState(null);
   const [farmerProfile, setFarmerProfile] = useState(null);
-  
+
   // WebRTC States
   const [isVideoActive, setIsVideoActive] = useState(false);
   const [isAudioOnly, setIsAudioOnly] = useState(false);
@@ -23,13 +25,14 @@ export default function LiveChat() {
   const remoteVideoRef = useRef();
   const peerRef = useRef(null);
   const localStreamRef = useRef(null);
-  
+  const candidateQueue = useRef([]);
+
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
   const userId = user?._id;
   const userRole = user?.role;
   const chatRef = useRef(null);
-  
+
   const room = [farmerId, expertId].sort().join("_");
 
   const stopMediaTracks = () => {
@@ -82,14 +85,18 @@ export default function LiveChat() {
     newSocket.on("webrtc-answer", async (answer) => {
       if (peerRef.current) {
         await peerRef.current.setRemoteDescription(answer);
+        candidateQueue.current.forEach(c => peerRef.current.addIceCandidate(c).catch(e => {}));
+        candidateQueue.current = [];
       }
     });
 
     newSocket.on("webrtc-ice", async (candidate) => {
-      if (peerRef.current) {
+      if (peerRef.current && peerRef.current.remoteDescription) {
         try {
           await peerRef.current.addIceCandidate(candidate);
         } catch (e) {}
+      } else {
+        candidateQueue.current.push(candidate);
       }
     });
 
@@ -115,15 +122,28 @@ export default function LiveChat() {
     }
   }, [messages]);
 
+  
+  const analyzeChat = async () => {
+    setIsAnalyzing(true);
+    try {
+      const res = await axios.post(`http://${window.location.hostname}:5000/api/analyze-chat`, { room });
+      setAiSummary(res.data.analysis);
+    } catch (err) {
+      console.error(err);
+      setAiSummary("Failed to generate AI analysis.");
+    }
+    setIsAnalyzing(false);
+  };
+
   const sendMessage = () => {
     if (!message.trim() || !socket) return;
-    
+
     const msgData = {
       room,
       sender: user._id,
       message
     };
-    
+
     socket.emit("send_message", msgData);
     setMessages(prev => [...prev, msgData]);
     setMessage("");
@@ -140,7 +160,7 @@ export default function LiveChat() {
 
   const createPeer = () => {
     const peer = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
-    
+
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => {
         peer.addTrack(track, localStreamRef.current);
@@ -169,7 +189,7 @@ export default function LiveChat() {
     const peer = createPeer();
     const offer = await peer.createOffer();
     await peer.setLocalDescription(offer);
-    
+
     socket.emit("request-call", { room, farmer_id: farmerId, expert_id: expertId, role: userRole, audioOnly, offer });
   };
 
@@ -187,6 +207,10 @@ export default function LiveChat() {
     await startLocalVideo(!isAudioOnly);
     const peer = createPeer();
     await peer.setRemoteDescription(incomingOffer);
+    
+    candidateQueue.current.forEach(c => peer.addIceCandidate(c).catch(e => {}));
+    candidateQueue.current = [];
+
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
     socket.emit("webrtc-answer", { room, answer });
@@ -202,6 +226,7 @@ export default function LiveChat() {
     setIsVideoActive(false);
     setIncomingOffer(null);
     setCallApprovalRequired(false);
+    candidateQueue.current = [];
     stopMediaTracks();
     if (peerRef.current) {
       peerRef.current.close();
@@ -210,9 +235,9 @@ export default function LiveChat() {
   };
 
   return (
-    <div style={{ display: "flex", gap: "20px", maxWidth: "900px", margin: "20px auto", padding: "0 20px" }}>
+    <div style={{ display: "flex", gap: "20px", maxWidth: "1100px", margin: "20px auto", padding: "0 20px" }}>
       <div className="glass-panel" style={{ flex: 1, display: "flex", flexDirection: "column", height: "70vh", overflow: "hidden" }}>
-        
+
         <div style={{ padding: "15px", background: "rgba(0,0,0,0.2)", borderBottom: "1px solid var(--glass-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontWeight: "bold", color: "var(--accent-color)" }}>Live Discussion Room</span>
           {!isVideoActive && (
@@ -235,42 +260,42 @@ export default function LiveChat() {
 
         {incomingOffer && !isVideoActive && (
           <div style={{ padding: "15px", background: "rgba(0,165,255,0.2)", textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-             <p style={{ margin: "0 0 10px 0" }}>Incoming {isAudioOnly ? "Audio" : "Video"} Call...</p>
-             <button onClick={acceptIncomingVideo} style={{ background: "var(--emerald-primary)" }}>Join Call</button>
+            <p style={{ margin: "0 0 10px 0" }}>Incoming {isAudioOnly ? "Audio" : "Video"} Call...</p>
+            <button onClick={acceptIncomingVideo} style={{ background: "var(--emerald-primary)" }}>Join Call</button>
           </div>
         )}
 
         {isVideoActive && !isAudioOnly && (
           <div style={{ display: "flex", gap: "10px", padding: "15px", background: "#000", borderBottom: "1px solid var(--glass-border)", height: "200px" }}>
-             <div style={{ flex: 1, background: "#222", borderRadius: "8px", overflow: "hidden", position: "relative" }}>
-               <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-               <span style={{ position: "absolute", bottom: 5, left: 10, background: "rgba(0,0,0,0.5)", padding: "2px 5px", borderRadius: "4px", fontSize: "0.8em" }}>Remote</span>
-             </div>
-             <div style={{ width: "150px", background: "#222", borderRadius: "8px", overflow: "hidden", position: "relative" }}>
-               <video ref={localVideoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-               <span style={{ position: "absolute", bottom: 5, left: 10, background: "rgba(0,0,0,0.5)", padding: "2px 5px", borderRadius: "4px", fontSize: "0.8em" }}>You</span>
-             </div>
+            <div style={{ flex: 1, background: "#222", borderRadius: "8px", overflow: "hidden", position: "relative" }}>
+              <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <span style={{ position: "absolute", bottom: 5, left: 10, background: "rgba(0,0,0,0.5)", padding: "2px 5px", borderRadius: "4px", fontSize: "0.8em" }}>Remote</span>
+            </div>
+            <div style={{ width: "150px", background: "#222", borderRadius: "8px", overflow: "hidden", position: "relative" }}>
+              <video ref={localVideoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <span style={{ position: "absolute", bottom: 5, left: 10, background: "rgba(0,0,0,0.5)", padding: "2px 5px", borderRadius: "4px", fontSize: "0.8em" }}>You</span>
+            </div>
           </div>
         )}
 
         {isVideoActive && isAudioOnly && (
-           <div style={{ padding: "15px", background: "var(--accent-color)", color: "white", textAlign: "center", borderBottom: "1px solid var(--glass-border)" }}>
-             <p style={{ margin: 0, fontWeight: "bold" }}>📞 Audio Call in Progress</p>
-             <audio ref={remoteVideoRef} autoPlay playsInline style={{ display: "none" }} />
-           </div>
+          <div style={{ padding: "15px", background: "var(--accent-color)", color: "white", textAlign: "center", borderBottom: "1px solid var(--glass-border)" }}>
+            <p style={{ margin: 0, fontWeight: "bold" }}>📞 Audio Call in Progress</p>
+            <audio ref={remoteVideoRef} autoPlay playsInline style={{ display: "none" }} />
+          </div>
         )}
 
         <div ref={chatRef} style={{ flex: 1, padding: "20px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "15px" }}>
           {messages.map((msg, i) => {
             const isMe = msg.sender === userId;
             return (
-              <div key={i} style={{ 
-                alignSelf: isMe ? "flex-end" : "flex-start", 
-                background: isMe ? "var(--accent-color)" : "var(--bg-secondary)", 
+              <div key={i} style={{
+                alignSelf: isMe ? "flex-end" : "flex-start",
+                background: isMe ? "var(--accent-color)" : "var(--bg-secondary)",
                 color: isMe ? "white" : "var(--text-primary)",
-                border: isMe ? "none" : "1px solid var(--glass-border)", 
-                padding: "12px 18px", 
-                borderRadius: isMe ? "20px 20px 0 20px" : "20px 20px 20px 0", 
+                border: isMe ? "none" : "1px solid var(--glass-border)",
+                padding: "12px 18px",
+                borderRadius: isMe ? "20px 20px 0 20px" : "20px 20px 20px 0",
                 maxWidth: "75%",
                 boxShadow: "0 2px 5px rgba(0,0,0,0.1)"
               }}>
@@ -281,9 +306,9 @@ export default function LiveChat() {
         </div>
 
         <div style={{ display: "flex", padding: "15px", borderTop: "1px solid var(--glass-border)", background: "rgba(0,0,0,0.1)" }}>
-          <input 
-            style={{ flex: 1 }} 
-            value={message} 
+          <input
+            style={{ flex: 1 }}
+            value={message}
             onChange={e => setMessage(e.target.value)}
             onKeyDown={e => e.key === "Enter" && sendMessage()}
             placeholder="Type a message..."
@@ -292,23 +317,42 @@ export default function LiveChat() {
         </div>
       </div>
 
-      {userRole === "expert" && (
-        <div className="glass-panel" style={{ width: "280px", padding: "20px", height: "fit-content" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "20px", width: "320px", height: "70vh" }}>
+        {userRole === "expert" && (
+          <div className="glass-panel" style={{ padding: "20px", height: "fit-content" }}>
+            <h3 style={{ margin: "0 0 15px 0", color: "var(--accent-color)", borderBottom: "1px solid var(--glass-border)", paddingBottom: "10px" }}>
+              🧑‍🌾 Farmer Profile
+            </h3>
+            {farmerProfile ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.95em" }}>
+                <p style={{ margin: 0 }}><strong>Name:</strong> {farmerProfile.name || "Unknown"}</p>
+                <p style={{ margin: 0 }}><strong>Location:</strong> {farmerProfile.location || "Not set"}</p>
+                <p style={{ margin: 0 }}><strong>Soil Type:</strong> {farmerProfile.soilType || "Not set"}</p>
+                <p style={{ margin: 0 }}><strong>History:</strong> {farmerProfile.previousCrops?.join(", ") || "None"}</p>
+              </div>
+            ) : (
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.9em" }}>Farmer hasn't filled profile details yet.</p>
+            )}
+          </div>
+        )}
+
+        <div className="glass-panel" style={{ padding: "20px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <h3 style={{ margin: "0 0 15px 0", color: "var(--accent-color)", borderBottom: "1px solid var(--glass-border)", paddingBottom: "10px" }}>
-            🧑‍🌾 Farmer Profile
+            🤖 AI Chat Analysis
           </h3>
-          {farmerProfile ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "0.95em" }}>
-              <p style={{ margin: 0 }}><strong>Name:</strong> {farmerProfile.name || "Unknown"}</p>
-              <p style={{ margin: 0 }}><strong>Location:</strong> {farmerProfile.location || "Not set"}</p>
-              <p style={{ margin: 0 }}><strong>Soil Type:</strong> {farmerProfile.soilType || "Not set"}</p>
-              <p style={{ margin: 0 }}><strong>History:</strong> {farmerProfile.previousCrops?.join(", ") || "None"}</p>
-            </div>
-          ) : (
-            <p style={{ color: "var(--text-secondary)", fontSize: "0.9em" }}>Farmer hasn't filled profile details yet.</p>
-          )}
+          <button 
+             onClick={analyzeChat}
+             disabled={isAnalyzing}
+             style={{ width: "100%", marginBottom: "15px", background: isAnalyzing ? "transparent" : "var(--emerald-primary)", border: isAnalyzing ? "1px solid var(--emerald-primary)" : "none", color: "white", padding: "10px", borderRadius: "8px", cursor: "pointer" }}
+          >
+             {isAnalyzing ? "🧠 Analyzing Transcript..." : "Generate AI Summary"}
+          </button>
+          
+          <div style={{ overflowY: "auto", flex: 1, fontSize: "0.9em", color: "var(--text-secondary)", whiteSpace: "pre-wrap", background: "rgba(0,0,0,0.2)", padding: "10px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
+            {aiSummary || "Click generate to feed this live chat session's transcript into the agricultural AI for a summarized resolution and actionable next steps."}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
