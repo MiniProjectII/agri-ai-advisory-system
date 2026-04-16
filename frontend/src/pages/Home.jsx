@@ -17,18 +17,18 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section style={{ 
-          flex: 1, 
-          display: "flex", 
-          flexDirection: "column", 
-          alignItems: "center", 
-          justifyContent: "center", 
-          textAlign: "center", 
-          padding: "60px 20px",
-          background: "linear-gradient(rgba(4, 16, 12, 0.8), rgba(4, 16, 12, 0.9)), url('https://images.unsplash.com/photo-1628183204780-4963e6ef6107?q=80&w=1920&auto=format&fit=crop')",
-          backgroundSize: "cover",
-          backgroundPosition: "center"
-        }}>
+      <section style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "60px 20px",
+        background: "linear-gradient(rgba(4, 16, 12, 0.8), rgba(4, 16, 12, 0.9)), url('https://images.unsplash.com/photo-1628183204780-4963e6ef6107?q=80&w=1920&auto=format&fit=crop')",
+        backgroundSize: "cover",
+        backgroundPosition: "center"
+      }}>
         <h2 style={{ fontSize: "4rem", margin: "0 0 20px 0", color: "white", textShadow: "0 4px 10px rgba(0,0,0,0.5)" }}>
           Empowering Agriculture with <span style={{ color: "var(--accent-color)" }}>Smart Guidance</span>
         </h2>
@@ -44,7 +44,7 @@ export default function Home() {
       {/* About & Mission */}
       <section id="mission" style={{ padding: "80px 40px", background: "var(--bg-primary)" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "40px" }}>
-          
+
           <div className="glass-panel" style={{ padding: "40px", textAlign: "center" }}>
             <div style={{ fontSize: "3rem", marginBottom: "20px" }}>🌾</div>
             <h3 style={{ fontSize: "1.5rem", color: "var(--accent-color)", marginBottom: "15px" }}>Our Mission</h3>
@@ -65,7 +65,7 @@ export default function Home() {
             <div style={{ fontSize: "3rem", marginBottom: "20px" }}>🧑‍🤝‍🧑</div>
             <h3 style={{ fontSize: "1.5rem", color: "var(--accent-color)", marginBottom: "15px" }}>Expert Network</h3>
             <p style={{ color: "var(--text-secondary)", lineHeight: "1.6" }}>
-               Are you an experienced farmer? Apply to become a recognized Expert and share your lifetime of knowledge via Live Video & Audio sessions with younger growers seeking specialized tutelage.
+              Are you an experienced farmer? Apply to become a recognized Expert and share your lifetime of knowledge via Live Video & Audio sessions with younger growers seeking specialized tutelage.
             </p>
           </div>
 

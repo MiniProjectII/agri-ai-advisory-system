@@ -158,13 +158,13 @@ export default function Profile() {
            <input name="location" value={formData.location} onChange={handleChange} placeholder="e.g. Hyderabad, TS" required />
         </div>
 
-        <div style={{ display: "flex", gap: "15px" }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: "block", marginBottom: "5px", color: "var(--text-secondary)", fontSize: "0.9em" }}>Soil Type</label>
+        <div style={{ display: "flex", gap: "15px", flexWrap: "wrap" }}>
+          <div style={{ flex: 2, minWidth: "200px" }}>
+            <label style={{ display: "block", marginBottom: "5px", color: "var(--text-secondary)", fontSize: "0.9em", fontWeight: "600" }}>Soil Type</label>
             <input name="soilType" value={formData.soilType} onChange={handleChange} placeholder="e.g. Red Soil, Black Soil" />
           </div>
-          <div style={{ width: "100px" }}>
-            <label style={{ display: "block", marginBottom: "5px", color: "var(--text-secondary)", fontSize: "0.9em" }}>Soil pH</label>
+          <div style={{ flex: 1, minWidth: "120px" }}>
+            <label style={{ display: "block", marginBottom: "5px", color: "var(--text-secondary)", fontSize: "0.9em", fontWeight: "600" }}>Soil pH</label>
             <input name="ph" type="number" step="0.1" value={formData.ph} onChange={handleChange} placeholder="6.5" />
           </div>
         </div>

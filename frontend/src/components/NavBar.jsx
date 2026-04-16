@@ -49,14 +49,14 @@ export default function NavBar() {
         <h3 style={{ margin: 0, color: "var(--accent-color)" }}>🌱 HarvestMate</h3>
 
         {(user.role === "farmer" || user.role === "farmer_expert") && (
-          <div style={{ display: "flex", gap: "15px", marginLeft: "20px", alignItems: "center" }}>
-            <Link to="/ai-assistant">Smart Advisor</Link>
-            <Link to="/community">Community</Link>
-            <Link to="/experts">Find Expert</Link>
-            <Link to="/market">Market</Link>
-            <Link to="/profile">Profile</Link>
+          <div style={{ display: "flex", gap: "10px", marginLeft: "20px", alignItems: "center", flexWrap: "wrap", maxWidth: "100%" }}>
+            <Link to="/ai-assistant" className="nav-link">Smart Advisor</Link>
+            <Link to="/community" className="nav-link">Community</Link>
+            <Link to="/experts" className="nav-link">Find Expert</Link>
+            <Link to="/market" className="nav-link">Market</Link>
+            <Link to="/profile" className="nav-link">Profile</Link>
             {user.role === "farmer" && user.originalRole !== "farmer_expert" && (
-              <Link to="/apply-expert" style={{ padding: "4px 10px", background: "var(--bg-secondary)", borderRadius: "6px", fontSize: "0.9em" }}>
+              <Link to="/apply-expert" className="nav-link" style={{ background: "var(--harvest-gold)", color: "white", borderColor: "var(--harvest-gold)", marginLeft: "auto" }}>
                 ⭐ Apply as Expert
               </Link>
             )}
@@ -64,10 +64,10 @@ export default function NavBar() {
         )}
 
         {(user.role === "expert" || user.role === "farmer_expert") && (
-          <div style={{ display: "flex", gap: "15px", marginLeft: "20px", borderLeft: user.role === "farmer_expert" ? "2px solid var(--glass-border)" : "none", paddingLeft: user.role === "farmer_expert" ? "20px" : "0" }}>
-            <Link to="/expert-dashboard">Expert Portal</Link>
-            <Link to="/community">Community</Link>
-            <Link to="/expert-profile">Expert Profile</Link>
+          <div style={{ display: "flex", gap: "10px", marginLeft: "20px", borderLeft: user.role === "farmer_expert" ? "2px solid var(--glass-border)" : "none", paddingLeft: user.role === "farmer_expert" ? "20px" : "0", flexWrap: "wrap" }}>
+            <Link to="/expert-dashboard" className="nav-link">Expert Portal</Link>
+            <Link to="/community" className="nav-link">Community</Link>
+            <Link to="/expert-profile" className="nav-link">Expert Profile</Link>
           </div>
         )}
       </div>

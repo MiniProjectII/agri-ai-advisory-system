@@ -1,23 +1,23 @@
 /* App.css (Global overrides) */
 :root {
-  --emerald-primary: #10b981;
-  --emerald-hover: #059669;
-  --forest-green: #064e3b;
-  --bg-primary: #0f172a;
+  --emerald-primary: #27ae60;
+  --emerald-hover: #219653;
+  --forest-green: #e6f2eb;
+  --bg-primary: #f8faf9;
 }
 
 body {
   margin: 0;
-  background: radial-gradient(circle at top right, var(--forest-green) 0%, var(--bg-primary) 100%);
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  color: #f8fafc;
+  /* background managed by index.css */
+  font-family: 'Outfit', 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  color: var(--text-primary);
   transition: background 0.3s ease, font-size 0.3s ease;
   min-height: 100vh;
 }
 
 body.dark-mode {
-  --bg-primary: #020617;
-  --forest-green: #022c22;
+  --bg-primary: #04100c;
+  --forest-green: #0a261c;
   background: radial-gradient(circle at top right, var(--forest-green) 0%, var(--bg-primary) 100%);
 }
 
@@ -32,23 +32,22 @@ body.lg-font {
 }
 
 .glass-panel {
-  background: rgba(30, 41, 59, 0.75);
+  background: var(--bg-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 
 .app-header h1 {
   margin: 0;
   font-size: 2.5rem;
-  color: var(--emerald-primary);
-  text-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  color: var(--accent-color);
+  text-shadow: 0 2px 10px rgba(39, 174, 96, 0.2);
 }
 
 .app-header p {
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 1.1rem;
 }
-
