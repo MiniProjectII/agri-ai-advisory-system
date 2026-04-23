@@ -11,6 +11,9 @@ CORS(app)
 
 # Load saved model and preprocessing objects
 model = tf.keras.models.load_model("crop_model.h5")
+rf_model = joblib.load("rf_model.pkl")
+xgb_model = joblib.load("xgb_model.pkl")
+svm_model = joblib.load("svm_model.pkl")
 scaler = joblib.load("scaler.pkl")
 label_encoder = joblib.load("label_encoder.pkl")
 
@@ -53,9 +56,16 @@ def predict():
         # Scale input
         input_scaled = scaler.transform(input_data)
 
-        # Predict
-        prediction = model.predict(input_scaled)
-        predicted_class = np.argmax(prediction)
+        # Predict using all 4 models (Soft Voting Ensemble)
+        ann_prob = model.predict(input_scaled)[0]
+        rf_prob = rf_model.predict_proba(input_scaled)[0]
+        xgb_prob = xgb_model.predict_proba(input_scaled)[0]
+        svm_prob = svm_model.predict_proba(input_scaled)[0]
+
+        # Average the probabilities
+        ensemble_prob = (ann_prob + rf_prob + xgb_prob + svm_prob) / 4.0
+        predicted_class = np.argmax(ensemble_prob)
+
         crop_name = label_encoder.inverse_transform([predicted_class])[0]
 
         return jsonify({
